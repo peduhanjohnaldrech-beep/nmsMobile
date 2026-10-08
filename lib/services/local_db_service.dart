@@ -404,6 +404,19 @@ class LocalDbService {
     await batch.commit(noResult: true);
   }
 
+  Future<bool> assessmentExistsForPeriod(int beneficiaryId, String period, int year) async {
+    if (kIsWeb) return false;
+    final database = await db;
+    final rows = await database.query(
+      'assessments',
+      columns:   ['id'],
+      where:     'beneficiary_id = ? AND period = ? AND assessment_year = ?',
+      whereArgs: [beneficiaryId, period, year],
+      limit:     1,
+    );
+    return rows.isNotEmpty;
+  }
+
   Future<List<Map<String, dynamic>>> getAssessmentsByBeneficiary(
       int beneficiaryId) async {
     if (kIsWeb) return [];

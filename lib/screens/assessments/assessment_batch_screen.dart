@@ -233,7 +233,8 @@ class _State extends State<AssessmentBatchScreen> {
 
                         return Card(
                           margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          elevation: hasWeight ? 2 : 1,
+                          elevation: 1,
+                          surfaceTintColor: Colors.transparent,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                             side: BorderSide(
@@ -280,11 +281,14 @@ class _State extends State<AssessmentBatchScreen> {
                                   flex: 2,
                                   child: TextFormField(
                                     controller: _weightCtrl[id],
-                                    decoration: const InputDecoration(
-                                      labelText: 'Weight (kg) *',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 8),
+                                    style: const TextStyle(color: Color(0xFFE8F4FD), fontSize: 13),
+                                    decoration: InputDecoration(
+                                      hintText: 'kg *',
+                                      hintStyle: const TextStyle(color: Color(0xFF4A6080), fontSize: 12),
+                                      border: const OutlineInputBorder(),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                      filled: true,
+                                      fillColor: const Color(0xFF0D1B2E),
                                     ),
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
@@ -296,11 +300,14 @@ class _State extends State<AssessmentBatchScreen> {
                                   flex: 2,
                                   child: TextFormField(
                                     controller: _heightCtrl[id],
+                                    style: const TextStyle(color: Color(0xFFE8F4FD), fontSize: 13),
                                     decoration: const InputDecoration(
-                                      labelText: 'Height (cm)',
+                                      hintText: 'cm',
+                                      hintStyle: TextStyle(color: Color(0xFF4A6080), fontSize: 12),
                                       border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 8),
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                      filled: true,
+                                      fillColor: Color(0xFF0D1B2E),
                                     ),
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
@@ -311,11 +318,14 @@ class _State extends State<AssessmentBatchScreen> {
                                   flex: 2,
                                   child: TextFormField(
                                     controller: _muacCtrl[id],
+                                    style: const TextStyle(color: Color(0xFFE8F4FD), fontSize: 13),
                                     decoration: const InputDecoration(
-                                      labelText: 'MUAC',
+                                      hintText: 'MUAC',
+                                      hintStyle: TextStyle(color: Color(0xFF4A6080), fontSize: 12),
                                       border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 8),
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                      filled: true,
+                                      fillColor: Color(0xFF0D1B2E),
                                     ),
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
