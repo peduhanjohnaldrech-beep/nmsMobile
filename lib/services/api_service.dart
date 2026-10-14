@@ -124,18 +124,22 @@ class ApiService {
     int perPage = 30,
     String? updatedSince,
     bool validatedOnly = false,
+    String? excludePeriod,
+    int? excludeYear,
   }) async {
     final base = await _baseUrl();
     final params = <String, String>{
       'page':     page.toString(),
       'per_page': perPage.toString(),
     };
-    if (barangay != null)     params['barangay']      = barangay;
-    if (search != null)       params['search']        = search;
-    if (status != null)       params['status']        = status;
-    if (source != null)       params['source']        = source;
-    if (updatedSince != null) params['updated_since'] = updatedSince;
+    if (barangay != null)     params['barangay']       = barangay;
+    if (search != null)       params['search']         = search;
+    if (status != null)       params['status']         = status;
+    if (source != null)       params['source']         = source;
+    if (updatedSince != null) params['updated_since']  = updatedSince;
     if (validatedOnly)        params['validated_only'] = '1';
+    if (excludePeriod != null) params['exclude_period'] = excludePeriod;
+    if (excludeYear != null)   params['exclude_year']   = excludeYear.toString();
 
     final uri = Uri.parse('$base/beneficiaries').replace(queryParameters: params);
     final res = await http
@@ -366,6 +370,29 @@ class ApiService {
   Future<Map<String, dynamic>> createDispensingRecord(Map<String, dynamic> data) async {
     final base = await _baseUrl();
     final res = await _client.post(Uri.parse('$base/dispensing'), headers: await _headers(), body: jsonEncode(data)).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  // -------------------------------------------------------
+  // DSP MONITORING
+  // -------------------------------------------------------
+
+  Future<Map<String, dynamic>> getDspEnrollments({String? barangay}) async {
+    final base   = await _baseUrl();
+    final params = <String, String>{'status': 'Active'};
+    if (barangay != null) params['barangay'] = barangay;
+    final uri = Uri.parse('$base/programs/dsp').replace(queryParameters: params);
+    final res = await _client.get(uri, headers: await _headers()).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> createDspMonitoring(Map<String, dynamic> data) async {
+    final base = await _baseUrl();
+    final res  = await _client
+        .post(Uri.parse('$base/programs/dsp/monitoring'),
+              headers: await _headers(),
+              body:    jsonEncode(data))
+        .timeout(const Duration(seconds: 15));
     return _decode(res);
   }
 
@@ -708,6 +735,20 @@ class ApiService {
     final base = await _baseUrl();
     final q = status != null ? '?status=$status' : '';
     final res = await _client.get(Uri.parse('$base/validation/beneficiaries/my-submissions$q'), headers: await _headers()).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> getAllAreaSubmissions({String? status}) async {
+    final base = await _baseUrl();
+    final q = status != null ? '?status=$status' : '';
+    final res = await _client.get(Uri.parse('$base/validation/all$q'), headers: await _headers()).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> getAllAreaBeneficiarySubmissions({String? status}) async {
+    final base = await _baseUrl();
+    final q = status != null ? '?status=$status' : '';
+    final res = await _client.get(Uri.parse('$base/validation/beneficiaries/all$q'), headers: await _headers()).timeout(const Duration(seconds: 15));
     return _decode(res);
   }
 

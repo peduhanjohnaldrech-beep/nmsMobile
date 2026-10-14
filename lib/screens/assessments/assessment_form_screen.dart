@@ -32,7 +32,8 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
   bool                    _loadingBenes  = false;
 
   DateTime _date   = DateTime.now();
-  String get _period => DateFormat('MMMM').format(_date);
+  // OPT uses 6-month periods matching the web: Jan–Jun = 'January', Jul–Dec = 'July'
+  String get _period => _date.month <= 6 ? 'January' : 'July';
   int    get _year   => _date.year;
   bool     _saving = false;
 
