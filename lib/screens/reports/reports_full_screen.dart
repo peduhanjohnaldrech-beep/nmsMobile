@@ -307,7 +307,7 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
         const SizedBox(height: 8),
         _tableCard(
           headers: const ['Barangay', 'Active', 'Completed', 'Dropped', 'Total'],
-          rows: byBrgy.map((r) => [
+          rows: byBrgy.map((r) => <String>[
             r['barangay'] ?? '',
             '${r['active'] ?? 0}',
             '${r['completed'] ?? 0}',
@@ -362,7 +362,7 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
         const SizedBox(height: 10),
         _tableCard(
           headers: const ['Barangay', 'Feb', 'Aug', 'Total'],
-          rows: vitaByBrgy.map((r) => [r['barangay'] ?? '', '${r['february'] ?? 0}', '${r['august'] ?? 0}', '${r['total'] ?? 0}']).toList(),
+          rows: vitaByBrgy.map((r) => <String>[r['barangay'] ?? '', '${r['february'] ?? 0}', '${r['august'] ?? 0}', '${r['total'] ?? 0}']).toList(),
           colors: [null, Colors.orange.shade300, Colors.orange.shade700, Colors.orange],
         ),
       ],
@@ -376,7 +376,7 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
         const SizedBox(height: 8),
         _tableCard(
           headers: const ['Barangay', 'Count'],
-          rows: mnpByBrgy.map((r) => [r['barangay'] ?? '', '${r['cnt'] ?? 0}']).toList(),
+          rows: mnpByBrgy.map((r) => <String>[r['barangay'] ?? '', '${r['cnt'] ?? 0}']).toList(),
           colors: [null, Colors.purple],
         ),
       ],
@@ -390,7 +390,7 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
         const SizedBox(height: 8),
         _tableCard(
           headers: const ['Barangay', 'Count'],
-          rows: lnsByBrgy.map((r) => [r['barangay'] ?? '', '${r['cnt'] ?? 0}']).toList(),
+          rows: lnsByBrgy.map((r) => <String>[r['barangay'] ?? '', '${r['cnt'] ?? 0}']).toList(),
           colors: [null, Colors.teal],
         ),
       ],
