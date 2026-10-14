@@ -193,14 +193,14 @@ class _DispensingFormScreenState extends State<DispensingFormScreen> {
           ),
           const SizedBox(height: 12),
 
-          // ── Quantity & unit ───────────────────────────────
-          Row(children: [
+          // ── Quantity & unit (vitamins/MNS only) ──────────────
+          if (_program != 'DSP') Row(children: [
             Expanded(
               child: TextFormField(
                 controller: _qtyCtrl,
                 decoration: const InputDecoration(labelText: 'Quantity *', border: OutlineInputBorder()),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                validator: (v) => _program == 'DSP' || (v != null && v.isNotEmpty) ? null : 'Required',
               ),
             ),
             const SizedBox(width: 10),

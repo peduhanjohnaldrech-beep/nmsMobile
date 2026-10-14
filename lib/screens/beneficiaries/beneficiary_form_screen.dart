@@ -153,7 +153,7 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
     final picked = await showDatePicker(
       context:     context,
       initialDate: _dob ?? now.subtract(const Duration(days: 365)),
-      firstDate:   now.subtract(const Duration(days: 365 * 7)),
+      firstDate:   DateTime(2000),
       lastDate:    now,
       helpText:    'Select Date of Birth',
       builder: (ctx, child) => Theme(
@@ -194,6 +194,10 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
     if (_dob == null) { _showError('Date of birth is required'); return; }
     if (_sex == null) { _showError('Sex is required'); return; }
     if (_barangay == null || _barangay!.isEmpty) { _showError('Barangay is required'); return; }
+
+    // Block aged-out beneficiaries (over 59 months)
+    final ageInMonths = (DateTime.now().year - _dob!.year) * 12 + (DateTime.now().month - _dob!.month);
+    if (ageInMonths > 59) { _showError('Beneficiary is over 59 months old and cannot be registered.'); return; }
 
     setState(() => _saving = true);
 

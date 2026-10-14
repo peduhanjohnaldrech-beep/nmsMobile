@@ -32,8 +32,8 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
   bool                    _loadingBenes  = false;
 
   DateTime _date   = DateTime.now();
-  String   _period = DateTime.now().month <= 6 ? 'January' : 'July';
-  int      _year   = DateTime.now().year;
+  String get _period => DateFormat('MMMM').format(_date);
+  int    get _year   => _date.year;
   bool     _saving = false;
 
   @override
@@ -110,40 +110,6 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
       return;
     }
 
-    // Warn if an assessment already exists for this period/year
-    if (!kIsWeb) {
-      final exists = await _local.assessmentExistsForPeriod(
-        _selectedBene!.id, _period, _year,
-      );
-      if (exists && mounted) {
-        final proceed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            title: const Text('Duplicate Assessment'),
-            content: Text(
-              'An assessment for $_period $_year already exists for this beneficiary. '
-              'Do you want to add another one?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade700,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Proceed'),
-              ),
-            ],
-          ),
-        );
-        if (proceed != true) return;
-      }
-    }
 
     setState(() => _saving = true);
 
@@ -167,6 +133,14 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
 
     try {
       if (isOnline) {
+        // If replacing an existing synced record, delete it on the server first
+        if (_existingAssessment != null && (_existingAssessment['is_synced'] == 1)) {
+          await _api.deleteAssessment(_existingAssessment['id'] as int);
+          await _local.deleteAssessmentById(_existingAssessment['id'] as int);
+        } else if (_existingAssessment != null) {
+          // Unsynced — just delete locally
+          await _local.deleteAssessmentById(_existingAssessment['id'] as int);
+        }
         final result = await _api.createAssessment(data);
         if (result['success'] == true) {
           final serverData = (result['data'] as Map<String, dynamic>?)?['assessment']
@@ -174,12 +148,18 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
           if (serverData != null && !kIsWeb) {
             await _local.upsertAssessments([serverData]);
           }
-          _showSuccess('Assessment recorded successfully');
+          _showSuccess(_existingAssessment != null
+              ? 'Assessment replaced successfully'
+              : 'Assessment recorded successfully');
         } else {
           _showError(result['message'] as String? ?? 'Failed to save');
         }
       } else {
         if (!kIsWeb) {
+          // Delete existing local record if replacing
+          if (_existingAssessment != null) {
+            await _local.deleteAssessmentById(_existingAssessment['id'] as int);
+          }
           await _local.insertOfflineAssessment({
             ...data,
             'id':                   DateTime.now().millisecondsSinceEpoch,
@@ -188,7 +168,9 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
             'nutritional_status':   'Pending',
             'created_at':           DateTime.now().toIso8601String(),
           });
-          _showSuccess('Saved offline. Will sync when connected.');
+          _showSuccess(_existingAssessment != null
+              ? 'Replaced offline. Will sync when connected.'
+              : 'Saved offline. Will sync when connected.');
         } else {
           _showError('No internet connection. Please connect and try again.');
         }
@@ -366,66 +348,6 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // Period + Year
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('OPT Period *',
-                              style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
-                          const SizedBox(height: 6),
-                          DropdownButtonFormField<String>(
-                            value: _period,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 14),
-                            ),
-                            items: ['January', 'July']
-                                .map((p) => DropdownMenuItem(
-                                    value: p, child: Text(p)))
-                                .toList(),
-                            onChanged: (v) => setState(() => _period = v!),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Year *',
-                              style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
-                          const SizedBox(height: 6),
-                          DropdownButtonFormField<int>(
-                            value: _year,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 14),
-                            ),
-                            items: [
-                              DateTime.now().year,
-                              DateTime.now().year - 1,
-                              DateTime.now().year - 2,
-                            ]
-                                .map((y) => DropdownMenuItem(
-                                    value: y, child: Text(y.toString())))
-                                .toList(),
-                            onChanged: (v) => setState(() => _year = v!),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
 
