@@ -325,20 +325,29 @@ class ApiService {
   // PROGRAMS
   // -------------------------------------------------------
 
+  Future<Map<String, dynamic>> getPuroks(String barangay) async {
+    final base = await _baseUrl();
+    final uri  = Uri.parse('$base/programs/puroks').replace(queryParameters: {'barangay': barangay});
+    final res  = await http.get(uri, headers: await _headers()).timeout(const Duration(seconds: 10));
+    return _decode(res);
+  }
+
   Future<Map<String, dynamic>> getPrograms({
     required String type,
     int? year,
     String? period,
     String? barangay,
+    String? purok,
     String? tab,
   }) async {
     final base = await _baseUrl();
     final params = <String, String>{};
-    if (year != null)     params['year']     = year.toString();
-    if (period != null)   params['period']   = period;
-    if (barangay != null) params['barangay'] = barangay;
-    if (tab != null)      params['tab']      = tab;
-    if (type == 'mns')    params['round']    = period ?? 'February';
+    if (year != null)                        params['year']     = year.toString();
+    if (period != null)                      params['period']   = period;
+    if (barangay != null)                    params['barangay'] = barangay;
+    if (purok != null && purok.isNotEmpty)   params['purok']    = purok;
+    if (tab != null)                         params['tab']      = tab;
+    if (type == 'mns')                       params['round']    = period ?? 'February';
 
     final uri = Uri.parse('$base/programs/$type').replace(queryParameters: params);
     final res = await http

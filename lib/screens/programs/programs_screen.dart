@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../services/auth_provider.dart';
 import '../../services/local_db_service.dart';
 import '../../widgets/status_badge.dart';
+import '../../constants/barangays.dart';
 import '../dsp/dsp_monitoring_form_screen.dart';
 
 class ProgramsScreen extends StatefulWidget {
@@ -109,23 +110,38 @@ class _OptTabState extends State<_OptTab> with AutomaticKeepAliveClientMixin {
   @override bool get wantKeepAlive => true;
 
   final _api = ApiService();
-  int     _year   = DateTime.now().year;
+  int     _year    = DateTime.now().year;
   String? _period;
+  String? _barangay;
+  String? _purok;
   bool    _loading = false;
   List<dynamic>        _items  = [];
   Map<String, dynamic> _counts = {};
+  List<String>         _puroks = [];
 
   final _years = [DateTime.now().year, DateTime.now().year - 1, DateTime.now().year - 2];
 
   @override
   void initState() { super.initState(); _load(); }
 
+  Future<void> _loadPuroks(String barangay) async {
+    try {
+      final res = await _api.getPuroks(barangay);
+      if (res['success'] == true && mounted) {
+        setState(() => _puroks = List<String>.from(res['data']['puroks'] ?? []));
+      }
+    } catch (_) {}
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     final user = context.read<AuthProvider>().user;
-    final brgy = user?.isScopedToBarangay == true ? user?.barangay : null;
+    final scopedBrgy = user?.isScopedToBarangay == true ? user?.barangay : null;
+    final brgy = scopedBrgy ?? _barangay;
     try {
-      final result = await _api.getPrograms(type: 'opt', year: _year, period: _period, barangay: brgy);
+      final result = await _api.getPrograms(
+        type: 'opt', year: _year, period: _period, barangay: brgy, purok: _purok,
+      );
       if (result['success'] == true && mounted) {
         final data = result['data'] as Map<String, dynamic>;
         setState(() {
@@ -140,25 +156,70 @@ class _OptTabState extends State<_OptTab> with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final user       = context.read<AuthProvider>().user;
+    final isScoped   = user?.isScopedToBarangay == true;
+
     return Column(children: [
       Container(
         color: const Color(0xFF1565C0),
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        child: Row(children: [
-          Expanded(child: _DropdownFilter<int>(
-            hint: 'Year', value: _year,
-            items: _years.map((y) => DropdownMenuItem(value: y, child: Text(y.toString()))).toList(),
-            onChanged: (v) { if (v != null) setState(() => _year = v); _load(); },
-          )),
-          const SizedBox(width: 8),
-          Expanded(child: _DropdownFilter<String>(
-            hint: 'All Periods', value: _period,
-            items: const [
-              DropdownMenuItem(value: 'January', child: Text('January')),
-              DropdownMenuItem(value: 'July',    child: Text('July')),
-            ],
-            onChanged: (v) { setState(() => _period = v); _load(); },
-          )),
+        child: Column(children: [
+          Row(children: [
+            Expanded(child: _DropdownFilter<int>(
+              hint: 'Year', value: _year,
+              items: _years.map((y) => DropdownMenuItem(value: y, child: Text(y.toString()))).toList(),
+              onChanged: (v) { if (v != null) setState(() => _year = v); _load(); },
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: _DropdownFilter<String>(
+              hint: 'All Periods', value: _period,
+              items: const [
+                DropdownMenuItem(value: 'January', child: Text('January')),
+                DropdownMenuItem(value: 'July',    child: Text('July')),
+              ],
+              onChanged: (v) { setState(() => _period = v); _load(); },
+            )),
+          ]),
+          if (!isScoped) ...[
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: _DropdownFilter<String>(
+                hint: 'All Barangays', value: _barangay,
+                items: kBarangays.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                onChanged: (v) {
+                  setState(() { _barangay = v; _purok = null; _puroks = []; });
+                  _load();
+                  if (v != null) _loadPuroks(v);
+                },
+              )),
+              if (_barangay != null) ...[
+                const SizedBox(width: 8),
+                Expanded(child: _DropdownFilter<String>(
+                  hint: 'All Puroks', value: _purok,
+                  items: _puroks.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                  onChanged: (v) { setState(() => _purok = v); _load(); },
+                )),
+              ],
+            ]),
+          ],
+          if (_barangay != null || _purok != null) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: () { setState(() { _barangay = null; _purok = null; _puroks = []; }); _load(); },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.filter_alt_off_rounded, size: 13, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text('Clear Filters', style: TextStyle(color: Colors.white, fontSize: 11)),
+                  ]),
+                ),
+              ),
+            ),
+          ],
         ]),
       ),
       if (_counts.isNotEmpty)
