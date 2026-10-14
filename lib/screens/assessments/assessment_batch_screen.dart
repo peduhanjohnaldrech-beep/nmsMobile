@@ -54,6 +54,8 @@ class _State extends State<AssessmentBatchScreen> {
         barangay: _barangay,
         perPage: 500,
         validatedOnly: true,
+        excludePeriod: _period,
+        excludeYear: _year,
       );
       if (res['success'] == true) {
         final list = List<Map<String, dynamic>>.from(
@@ -198,7 +200,10 @@ class _State extends State<AssessmentBatchScreen> {
                         isDense: true,
                         items: ['January', 'July'].map((p) =>
                             DropdownMenuItem(value: p, child: Text(p))).toList(),
-                        onChanged: (v) => setState(() => _period = v!),
+                        onChanged: (v) {
+                          setState(() => _period = v!);
+                          _loadBeneficiaries();
+                        },
                       ),
                       const SizedBox(width: 16),
                       DropdownButton<int>(
@@ -207,7 +212,10 @@ class _State extends State<AssessmentBatchScreen> {
                         isDense: true,
                         items: List.generate(4, (i) => DateTime.now().year - i).map((y) =>
                             DropdownMenuItem(value: y, child: Text('$y'))).toList(),
-                        onChanged: (v) => setState(() => _year = v!),
+                        onChanged: (v) {
+                          setState(() => _year = v!);
+                          _loadBeneficiaries();
+                        },
                       ),
                       const Spacer(),
                       Text('${_beneficiaries.length} children',

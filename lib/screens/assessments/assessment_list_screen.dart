@@ -26,7 +26,9 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
   bool    _hasMore      = true;
   int     _page         = 1;
   int?    _filterYear;
-  String? _filterPeriod;
+
+  // Mixed list: either a String section header or an AssessmentModel
+  List<dynamic> _displayList = [];
 
   final List<int> _years = [
     DateTime.now().year,
@@ -83,7 +85,6 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
       final result = await _api.getAssessments(
         barangay: brgy,
         year:     _filterYear,
-        period:   _filterPeriod,
         page:     page,
         perPage:  30,
       );
@@ -94,7 +95,6 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
     } else {
       rows = await _local.getAllAssessments(
         year:     _filterYear,
-        period:   _filterPeriod,
         barangay: brgy,
         page:     page,
         perPage:  30,
@@ -104,10 +104,40 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
     if (mounted) {
       setState(() {
         _items.addAll(rows.map((r) => AssessmentModel.fromJson(r)));
-        _hasMore = rows.length == 30;
-        _page    = page + 1;
+        _hasMore    = rows.length == 30;
+        _page       = page + 1;
+        _displayList = _buildDisplayList(_items);
       });
     }
+  }
+
+  /// Builds a flat list with section-header strings interspersed before each period group.
+  List<dynamic> _buildDisplayList(List<AssessmentModel> items) {
+    if (items.isEmpty) return [];
+    // Group by "year_period"
+    final Map<String, List<AssessmentModel>> sections = {};
+    for (final item in items) {
+      final key = '${item.assessmentYear}_${item.period}';
+      sections.putIfAbsent(key, () => []).add(item);
+    }
+    // Sort: year desc, within same year July before January
+    final keys = sections.keys.toList()
+      ..sort((a, b) {
+        final ay = int.parse(a.split('_')[0]);
+        final by = int.parse(b.split('_')[0]);
+        if (ay != by) return by - ay;
+        final ap = a.split('_')[1];
+        final bp = b.split('_')[1];
+        return ap == bp ? 0 : (ap == 'July' ? -1 : 1);
+      });
+    final result = <dynamic>[];
+    for (final key in keys) {
+      final year   = key.split('_')[0];
+      final period = key.split('_')[1];
+      result.add('$period $year');
+      result.addAll(sections[key]!);
+    }
+    return result;
   }
 
   @override
@@ -167,32 +197,13 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 8),
-                // Period filter
-                Expanded(
-                  child: _FilterDropdown<String>(
-                    hint:  'All Periods',
-                    value: _filterPeriod,
-                    items: const [
-                      DropdownMenuItem(value: 'January', child: Text('January')),
-                      DropdownMenuItem(value: 'July',    child: Text('July')),
-                    ],
-                    onChanged: (v) {
-                      setState(() => _filterPeriod = v);
-                      _load(reset: true);
-                    },
-                  ),
-                ),
-                if (_filterYear != null || _filterPeriod != null) ...[
+                if (_filterYear != null) ...[
                   const SizedBox(width: 8),
                   IconButton(
                     icon:    const Icon(Icons.filter_alt_off_rounded, color: Colors.white),
-                    tooltip: 'Clear filters',
+                    tooltip: 'Clear year filter',
                     onPressed: () {
-                      setState(() {
-                        _filterYear   = null;
-                        _filterPeriod = null;
-                      });
+                      setState(() => _filterYear = null);
                       _load(reset: true);
                     },
                   ),
@@ -200,31 +211,6 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
               ],
             ),
           ),
-
-          // Summary chip
-          if (_items.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color:        const Color(0xFF1565C0).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_items.length}${_hasMore ? '+' : ''} assessments',
-                      style: const TextStyle(
-                        fontSize:   12,
-                        fontWeight: FontWeight.w600,
-                        color:      Color(0xFF1565C0),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
           // List
           Expanded(
@@ -237,9 +223,9 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
                         child: ListView.builder(
                           controller: _scrollCtrl,
                           padding:    const EdgeInsets.fromLTRB(12, 8, 12, 100),
-                          itemCount:  _items.length + (_loadingMore ? 1 : 0),
+                          itemCount:  _displayList.length + (_loadingMore ? 1 : 0),
                           itemBuilder: (ctx, i) {
-                            if (i == _items.length) {
+                            if (i == _displayList.length) {
                               return const Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(16),
@@ -247,8 +233,13 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
                                 ),
                               );
                             }
+                            final item = _displayList[i];
+                            if (item is String) {
+                              // Section header
+                              return _SectionHeader(label: item);
+                            }
                             return _AssessmentCard(
-                              assessment: _items[i],
+                              assessment: item as AssessmentModel,
                               formatDate: _formatDate,
                             );
                           },
@@ -318,6 +309,44 @@ class _FilterDropdown<T> extends StatelessWidget {
         style:          const TextStyle(color: Color(0xFFE8F4FD), fontSize: 13),
         dropdownColor:  const Color(0xFF0D1B2E),
         icon:           const Icon(Icons.expand_more, color: Colors.white70, size: 18),
+      ),
+    );
+  }
+}
+
+// -------------------------------------------------------
+// SECTION HEADER
+// -------------------------------------------------------
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  const _SectionHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color:        const Color(0xFF1565C0),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize:   13,
+                fontWeight: FontWeight.w700,
+                color:      Colors.white,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(child: Divider(color: Color(0xFF1E3A5F), thickness: 1)),
+        ],
       ),
     );
   }

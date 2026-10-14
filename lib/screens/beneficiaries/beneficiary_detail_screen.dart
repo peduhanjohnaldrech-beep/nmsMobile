@@ -109,7 +109,10 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
       content: Text(res['message'] ?? 'Done'),
       backgroundColor: res['success'] == true ? Colors.green : Colors.red,
     ));
-    if (res['success'] == true) await _refreshBeneficiary();
+    if (res['success'] == true) {
+      await _local.markBeneficiarySubmitted(_bene.id);
+      await _refreshBeneficiary();
+    }
   }
 
   String _formatDate(String date) {
@@ -180,7 +183,10 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                       final res = await _api.deleteBeneficiary(_bene.id);
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Moved to trash')));
-                        if (res['success'] == true) Navigator.pop(context, true);
+                        if (res['success'] == true) {
+                          await _local.deleteBeneficiaryById(_bene.id);
+                          if (mounted) Navigator.pop(context, true);
+                        }
                       }
                     }
                   },

@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../services/auth_provider.dart';
 import '../../services/local_db_service.dart';
 import '../../widgets/status_badge.dart';
+import '../dsp/dsp_monitoring_form_screen.dart';
 
 class ProgramsScreen extends StatefulWidget {
   const ProgramsScreen({super.key});
@@ -410,8 +411,13 @@ class _DspTabState extends State<_DspTab> with AutomaticKeepAliveClientMixin {
                                         padding: EdgeInsets.zero,
                                       ),
                                       icon: const Icon(Icons.monitor_weight_outlined, size: 15),
-                                      label: const Text('Update', style: TextStyle(fontSize: 12)),
-                                      onPressed: () => _showUpdateModal(e),
+                                      label: const Text('Follow-up', style: TextStyle(fontSize: 12)),
+                                      onPressed: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => DspMonitoringFormScreen(enrollment: e),
+                                        ),
+                                      ).then((saved) { if (saved == true) _load(); }),
                                     )),
                                     const SizedBox(width: 8),
                                     Expanded(child: ElevatedButton.icon(

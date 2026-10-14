@@ -209,16 +209,39 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () => Navigator.pushNamed(context, '/assessments/batch')
                             .then((_) => _loadAll()),
                       ),
+                      _QuickActionCard(
+                        icon:  Icons.monitor_weight_outlined,
+                        label: 'DSP Follow-up',
+                        color: Colors.cyan.shade700,
+                        onTap: () => Navigator.pushNamed(context, '/dsp/monitoring')
+                            .then((_) => _loadAll()),
+                      ),
+                      _QuickActionCard(
+                        icon:  Icons.assignment_turned_in_outlined,
+                        label: 'My Submissions',
+                        color: Colors.orange.shade700,
+                        onTap: () => Navigator.pushNamed(context, '/validation/submissions')
+                            .then((_) => _loadAll()),
+                      ),
                     ],
 
                     // ── MIDWIFE ─────────────────────────────────────────
-                    if (role == 'midwife')
+                    if (role == 'midwife') ...[
                       _QuickActionCard(
                         icon:  Icons.fact_check_outlined,
                         label: 'Validation Queue',
                         color: Colors.orange.shade700,
-                        onTap: () => Navigator.pushNamed(context, '/validation/queue'),
+                        onTap: () => Navigator.pushNamed(context, '/validation/queue')
+                            .then((_) => _loadAll()),
                       ),
+                      _QuickActionCard(
+                        icon:  Icons.track_changes_rounded,
+                        label: 'Track Records',
+                        color: Colors.teal.shade700,
+                        onTap: () => Navigator.pushNamed(context, '/validation/track')
+                            .then((_) => _loadAll()),
+                      ),
+                    ],
 
                     // ── ADMIN / NUTRITIONIST / ENCODER ──────────────────
                     if (role == 'admin' || role == 'nutritionist' || role == 'encoder') ...[

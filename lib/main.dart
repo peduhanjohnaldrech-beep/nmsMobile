@@ -30,6 +30,7 @@ import 'screens/admin/program_manager_screen.dart';
 import 'screens/help/help_screen.dart';
 import 'screens/validation/validation_queue_screen.dart';
 import 'screens/validation/my_submissions_screen.dart';
+import 'screens/dsp/dsp_monitoring_form_screen.dart';
 import 'models/beneficiary_model.dart';
 import 'services/api_service.dart';
 
@@ -158,6 +159,8 @@ class NmsApp extends StatelessWidget {
         '/help':                   (_) => const HelpScreen(),
         '/validation/queue':       (_) => const ValidationQueueScreen(),
         '/validation/submissions': (_) => const MySubmissionsScreen(),
+        '/validation/track':       (_) => const MySubmissionsScreen(viewAll: true),
+        '/dsp/monitoring':         (_) => const DspMonitoringFormScreen(),
       },
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -396,7 +399,7 @@ class _MainShellState extends State<MainShell> {
     final user = auth.user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: const Color(0xFF060D1F),
       appBar: _NmsAppBar(
         title: _titles[_index],
         user:  user,
@@ -639,6 +642,7 @@ class _NmsSidebarState extends State<_NmsSidebar> {
                       const _NavSectionLabel('PROGRAMS'),
                       if (user?.hasPermission('programs') ?? false) ...[
                         _NavItem(icon: Icons.grid_view_rounded, label: 'Programs',            index: 3, current: widget.currentIndex, onTap: widget.onNavigate),
+                        _NavItemRoute(icon: Icons.monitor_weight_outlined, label: 'DSP Follow-up', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/dsp/monitoring'); }),
                         // Dynamic custom programs (non-built-in active programs)
                         ..._programs.where((p) => !['OPT','DSP','MNS'].contains(p['code'])).map((p) =>
                           _NavItemRoute(
@@ -662,8 +666,10 @@ class _NmsSidebarState extends State<_NmsSidebar> {
 
                     if (user?.hasPermission('validation') ?? false) ...[
                       const _NavSectionLabel('VALIDATION'),
-                      if (role == 'admin' || role == 'nutritionist' || role == 'midwife')
+                      if (role == 'admin' || role == 'nutritionist' || role == 'midwife') ...[
                         _NavItemRoute(icon: Icons.fact_check_outlined, label: 'Validation Queue', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/validation/queue'); }),
+                        _NavItemRoute(icon: Icons.track_changes_rounded, label: 'Track Records', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/validation/track'); }),
+                      ],
                       if (role == 'bhw' || role == 'encoder' || role == 'bns')
                         _NavItemRoute(icon: Icons.assignment_turned_in_outlined, label: 'My Submissions', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/validation/submissions'); }),
                     ],
@@ -940,7 +946,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 2),
                     Text('@${user?.username ?? '—'}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1017,7 +1023,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                   ]),
                 ] else
                   Text(_urlCtrl.text.isNotEmpty ? _urlCtrl.text : AppConfig.defaultBaseUrl,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54, fontFamily: 'monospace')),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8), fontFamily: 'monospace')),
               ],
             ),
           ),
@@ -1036,9 +1042,9 @@ class _ProfilePageState extends State<_ProfilePage> {
     margin: const EdgeInsets.only(bottom: 6),
     child: ListTile(
       dense: true,
-      leading: Icon(icon, color: const Color(0xFF1565C0), size: 20),
-      title: Text(title, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-      subtitle: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+      leading: Icon(icon, color: const Color(0xFF00C6FF), size: 20),
+      title: Text(title, style: const TextStyle(fontSize: 11, color: Color(0xFF7B8FA6))),
+      subtitle: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFE8F4FD))),
     ),
   );
 
@@ -1057,6 +1063,6 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 6, top: 4),
-    child: Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: Colors.grey.shade700)),
+    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: Color(0xFF00C6FF))),
   );
 }

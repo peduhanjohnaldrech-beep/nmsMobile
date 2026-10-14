@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../models/beneficiary_model.dart';
 import '../../services/api_service.dart';
+import '../beneficiaries/beneficiary_detail_screen.dart';
 
 class ValidationQueueScreen extends StatefulWidget {
   const ValidationQueueScreen({super.key});
@@ -68,9 +70,9 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(children: [
-          Icon(Icons.cancel_outlined, color: Colors.red.shade600, size: 22),
+          Icon(Icons.reply_rounded, color: Colors.orange.shade700, size: 22),
           const SizedBox(width: 8),
-          const Text('Reject Assessment'),
+          const Text('Return for Correction'),
         ]),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(
@@ -80,13 +82,31 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
           const SizedBox(height: 4),
           Text(
             '${item['period']} ${item['assessment_year']}  •  ${item['nutritional_status'] ?? ''}',
-            style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.orange.shade700),
+              const SizedBox(width: 6),
+              Expanded(child: Text(
+                'This will be sent back to the BHW for correction.',
+                style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+              )),
+            ]),
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: noteCtrl,
             decoration: InputDecoration(
-              labelText: 'Reason for rejection *',
+              labelText: 'Note to BHW *',
+              hintText: 'e.g. Weight seems incorrect, please re-measure',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               contentPadding: const EdgeInsets.all(12),
             ),
@@ -96,9 +116,9 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
+          ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
+              backgroundColor: Colors.orange.shade700,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -106,7 +126,8 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
               if (noteCtrl.text.trim().isEmpty) return;
               Navigator.pop(ctx, true);
             },
-            child: const Text('Reject'),
+            icon: const Icon(Icons.reply_rounded, size: 16),
+            label: const Text('Return'),
           ),
         ],
       ),
@@ -125,9 +146,9 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(children: [
-          Icon(Icons.person_off_outlined, color: Colors.red.shade600, size: 22),
+          Icon(Icons.reply_rounded, color: Colors.orange.shade700, size: 22),
           const SizedBox(width: 8),
-          const Text('Reject Registration'),
+          const Text('Return for Correction'),
         ]),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(
@@ -137,13 +158,31 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
           const SizedBox(height: 4),
           Text(
             '${item['barangay'] ?? ''}  •  ${item['sex'] ?? ''}',
-            style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.orange.shade700),
+              const SizedBox(width: 6),
+              Expanded(child: Text(
+                'This will be sent back to the BHW for correction.',
+                style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+              )),
+            ]),
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: noteCtrl,
             decoration: InputDecoration(
-              labelText: 'Reason for rejection *',
+              labelText: 'Note to BHW *',
+              hintText: 'e.g. Date of birth does not match health card',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               contentPadding: const EdgeInsets.all(12),
             ),
@@ -153,9 +192,9 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
+          ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
+              backgroundColor: Colors.orange.shade700,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -163,7 +202,8 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
               if (noteCtrl.text.trim().isEmpty) return;
               Navigator.pop(ctx, true);
             },
-            child: const Text('Reject'),
+            icon: const Icon(Icons.reply_rounded, size: 16),
+            label: const Text('Return'),
           ),
         ],
       ),
@@ -219,6 +259,56 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
       backgroundColor: success ? Colors.green : Colors.red,
       behavior: SnackBarBehavior.floating,
     ));
+  }
+
+  // ── DETAIL / EDIT ────────────────────────────────────────
+
+  Future<void> _openBeneficiaryDetail(Map<String, dynamic> b) async {
+    final model = BeneficiaryModel.fromJson(b);
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => BeneficiaryDetailScreen(beneficiary: model)),
+    );
+    if (result == true && mounted) _load();
+  }
+
+  /// Opens full child profile from an assessment map (fetches beneficiary by ID).
+  Future<void> _openProfileFromAssessment(Map<String, dynamic> a) async {
+    final beneficiaryId = int.tryParse(a['beneficiary_id'].toString());
+    if (beneficiaryId == null) {
+      _showSnack('Cannot open profile', false);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Loading profile...'),
+      duration: Duration(seconds: 10),
+      behavior: SnackBarBehavior.floating,
+    ));
+    try {
+      final res = await _api.getBeneficiary(beneficiaryId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      if (res['success'] != true) {
+        _showSnack(res['message'] ?? 'Failed to load profile', false);
+        return;
+      }
+      final beneData = (res['data'] as Map<String, dynamic>?)?['beneficiary'] as Map<String, dynamic>?;
+      if (beneData == null) {
+        _showSnack('Beneficiary not found', false);
+        return;
+      }
+      final model = BeneficiaryModel.fromJson(beneData);
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => BeneficiaryDetailScreen(beneficiary: model)),
+      );
+      if (result == true && mounted) _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showSnack('Error: $e', false);
+      }
+    }
   }
 
   // ── HELPERS ─────────────────────────────────────────────
@@ -375,7 +465,10 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
             borderRadius: BorderRadius.circular(10),
             side: isSelected ? BorderSide(color: Colors.green.shade400, width: 1.5) : BorderSide.none,
           ),
-          child: Padding(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => _openProfileFromAssessment(a),
+            child: Padding(
               padding: const EdgeInsets.fromLTRB(4, 12, 12, 12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,17 +516,30 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                       Row(children: [
                         Expanded(child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red.shade700,
-                            side: BorderSide(color: Colors.red.shade200),
+                            foregroundColor: Colors.blue.shade700,
+                            side: BorderSide(color: Colors.blue.shade200),
                             padding: EdgeInsets.zero,
                             minimumSize: const Size(0, 36),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          icon: const Icon(Icons.close_rounded, size: 15),
-                          label: const Text('Reject', style: TextStyle(fontSize: 13)),
+                          icon: const Icon(Icons.edit_outlined, size: 15),
+                          label: const Text('Edit', style: TextStyle(fontSize: 13)),
+                          onPressed: () => _openProfileFromAssessment(a),
+                        )),
+                        const SizedBox(width: 6),
+                        Expanded(child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.orange.shade700,
+                            side: BorderSide(color: Colors.orange.shade200),
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 36),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.reply_rounded, size: 15),
+                          label: const Text('Return', style: TextStyle(fontSize: 13)),
                           onPressed: () => _rejectAssessment(a),
                         )),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade600,
@@ -462,6 +568,7 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                 ],
               ),
             ),
+          ),
         );
       },
     );
@@ -495,7 +602,10 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
             borderRadius: BorderRadius.circular(10),
             side: isSelected ? BorderSide(color: Colors.green.shade400, width: 1.5) : BorderSide.none,
           ),
-          child: Padding(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => _openBeneficiaryDetail(b),
+            child: Padding(
               padding: const EdgeInsets.fromLTRB(4, 12, 12, 12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,17 +655,30 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                       Row(children: [
                         Expanded(child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red.shade700,
-                            side: BorderSide(color: Colors.red.shade200),
+                            foregroundColor: Colors.blue.shade700,
+                            side: BorderSide(color: Colors.blue.shade200),
                             padding: EdgeInsets.zero,
                             minimumSize: const Size(0, 36),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          icon: const Icon(Icons.close_rounded, size: 15),
-                          label: const Text('Reject', style: TextStyle(fontSize: 13)),
+                          icon: const Icon(Icons.edit_outlined, size: 15),
+                          label: const Text('Edit', style: TextStyle(fontSize: 13)),
+                          onPressed: () => _openBeneficiaryDetail(b),
+                        )),
+                        const SizedBox(width: 6),
+                        Expanded(child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.orange.shade700,
+                            side: BorderSide(color: Colors.orange.shade200),
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 36),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.reply_rounded, size: 15),
+                          label: const Text('Return', style: TextStyle(fontSize: 13)),
                           onPressed: () => _rejectBeneficiary(b),
                         )),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade600,
@@ -584,6 +707,7 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                 ],
               ),
             ),
+          ),
         );
       },
     );

@@ -641,6 +641,31 @@ class ApiService {
     return _decode(res);
   }
 
+  /// Downloads a report file (CSV or Excel) as raw bytes.
+  /// [type]: opt | dsp | mns_vita | mns_mnp | mns_lns
+  /// [format]: csv | excel
+  Future<Uint8List?> downloadReportExport({
+    required String type,
+    String format = 'csv',
+    int? year,
+    String? period,
+    String? barangay,
+  }) async {
+    try {
+      final base = await _baseUrl();
+      final params = <String, String>{'type': type, 'format': format};
+      if (year != null)                       params['year']     = year.toString();
+      if (period != null && period.isNotEmpty) params['period']   = period;
+      if (barangay != null)                   params['barangay'] = barangay;
+      final uri = Uri.parse('$base/reports/export').replace(queryParameters: params);
+      final res = await _client.get(uri, headers: await _headers()).timeout(const Duration(seconds: 60));
+      if (res.statusCode == 200) return res.bodyBytes;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // -------------------------------------------------------
   // USERS
   // -------------------------------------------------------

@@ -116,6 +116,8 @@ class BeneficiaryModel {
     return (now.year - dob.year) * 12 + (now.month - dob.month);
   }
 
+  bool get isAgedOut            => ageInMonths > 59;
+
   bool get isPendingValidation => validationStatus == 'pending';
   bool get isRejected          => validationStatus == 'rejected';
   bool get isValidated         => validationStatus == 'validated';

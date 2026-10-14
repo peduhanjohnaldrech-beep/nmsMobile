@@ -3,7 +3,10 @@ import '../../services/api_service.dart';
 import '../../models/beneficiary_model.dart';
 
 class MySubmissionsScreen extends StatefulWidget {
-  const MySubmissionsScreen({super.key});
+  /// When true, loads all area submissions (midwife view).
+  /// When false (default), loads only the current user's submissions (BHW view).
+  final bool viewAll;
+  const MySubmissionsScreen({super.key, this.viewAll = false});
   @override State<MySubmissionsScreen> createState() => _State();
 }
 
@@ -30,8 +33,8 @@ class _State extends State<MySubmissionsScreen> with SingleTickerProviderStateMi
     setState(() { _loading = true; _error = null; });
     try {
       final results = await Future.wait([
-        _api.getMySubmissions(),
-        _api.getMyBeneficiarySubmissions(),
+        widget.viewAll ? _api.getAllAreaSubmissions() : _api.getMySubmissions(),
+        widget.viewAll ? _api.getAllAreaBeneficiarySubmissions() : _api.getMyBeneficiarySubmissions(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -55,7 +58,9 @@ class _State extends State<MySubmissionsScreen> with SingleTickerProviderStateMi
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(totalBadge > 0 ? 'My Submissions ($totalBadge pending)' : 'My Submissions'),
+        title: Text(widget.viewAll
+            ? (totalBadge > 0 ? 'Track Records ($totalBadge pending)' : 'Track Records')
+            : (totalBadge > 0 ? 'My Submissions ($totalBadge pending)' : 'My Submissions')),
         backgroundColor: const Color(0xFF1565C0),
         foregroundColor: Colors.white,
         actions: [
@@ -137,7 +142,7 @@ IconData _statusIcon(String s) => switch (s) {
 
 String _statusLabel(String s) => switch (s) {
   'validated' => 'Validated',
-  'rejected'  => 'Rejected',
+  'rejected'  => 'Returned',
   _           => 'Pending',
 };
 
@@ -167,19 +172,18 @@ Widget _rejectionBox(String note) => Container(
   margin: const EdgeInsets.only(top: 8),
   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
   decoration: BoxDecoration(
-    color: const Color(0xFFFFEBEE),
+    color: Colors.orange.shade50,
     borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: const Color(0xFFEF9A9A)),
+    border: Border.all(color: Colors.orange.shade200),
   ),
-  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFC62828)),
-    const SizedBox(width: 6),
-    Expanded(
-      child: Text(
-        note,
-        style: const TextStyle(fontSize: 12, color: Color(0xFFB71C1C)),
-      ),
-    ),
+  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Row(children: [
+      Icon(Icons.reply_rounded, size: 13, color: Colors.orange.shade700),
+      const SizedBox(width: 5),
+      Text('Midwife\'s note:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.orange.shade800)),
+    ]),
+    const SizedBox(height: 4),
+    Text(note, style: TextStyle(fontSize: 12, color: Colors.orange.shade900)),
   ]),
 );
 
@@ -248,7 +252,7 @@ class _AssessmentSubmissionsState extends State<_AssessmentSubmissions>
           tabs: [
             _subTab('Pending', pending.length, Colors.orange.shade700),
             _subTab('Validated', validated.length, const Color(0xFF2E7D32)),
-            _subTab('Rejected', rejected.length, const Color(0xFFC62828)),
+            _subTab('Returned', rejected.length, Colors.orange.shade700),
           ],
         ),
       ),
@@ -282,7 +286,7 @@ class _AssessmentSubmissionsState extends State<_AssessmentSubmissions>
       final cfg = <String, List<dynamic>>{
         'pending':   [Icons.hourglass_empty_rounded,  Colors.orange.shade300, 'No pending assessments',  'Your submitted assessments will appear here.'],
         'validated': [Icons.fact_check_rounded,        Colors.green.shade400,  'No validated assessments', 'Validated records will show here.'],
-        'rejected':  [Icons.thumb_down_off_alt_rounded, Colors.red.shade300,   'No rejected assessments',  'Rejected records will show here.'],
+        'rejected':  [Icons.reply_rounded,             Colors.orange.shade300, 'No returned assessments',  'Assessments returned for correction will appear here.'],
       }[tabStatus]!;
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(cfg[0] as IconData, size: 56, color: cfg[1] as Color),
@@ -418,7 +422,7 @@ class _BeneficiarySubmissionsState extends State<_BeneficiarySubmissions>
           tabs: [
             _subTab('Pending', pending.length, Colors.orange.shade700),
             _subTab('Validated', validated.length, const Color(0xFF2E7D32)),
-            _subTab('Rejected', rejected.length, const Color(0xFFC62828)),
+            _subTab('Returned', rejected.length, Colors.orange.shade700),
           ],
         ),
       ),
@@ -452,7 +456,7 @@ class _BeneficiarySubmissionsState extends State<_BeneficiarySubmissions>
       final cfg = <String, List<dynamic>>{
         'pending':   [Icons.hourglass_empty_rounded,  Colors.orange.shade300, 'No pending registrations',  'Submitted registrations awaiting review.'],
         'validated': [Icons.how_to_reg_rounded,        Colors.green.shade400,  'No validated registrations', 'Approved registrations will show here.'],
-        'rejected':  [Icons.person_off_outlined,       Colors.red.shade300,    'No rejected registrations',  'Rejected registrations will show here.'],
+        'rejected':  [Icons.reply_rounded,             Colors.orange.shade300, 'No returned registrations',  'Registrations returned for correction will appear here.'],
       }[tabStatus]!;
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(cfg[0] as IconData, size: 56, color: cfg[1] as Color),

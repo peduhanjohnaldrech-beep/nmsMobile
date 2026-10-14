@@ -41,7 +41,7 @@ class AuthProvider extends ChangeNotifier {
       // Load cached user first so UI can proceed if offline
       _user = UserModel.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
 
-      // Verify token is still valid on server
+      // Verify token is still valid on server (best-effort — never log out here)
       try {
         final me = await _api.getMe().timeout(const Duration(seconds: 8));
         if (me['success'] == true) {
@@ -49,14 +49,9 @@ class AuthProvider extends ChangeNotifier {
           final userData = me['data'] as Map<String, dynamic>;
           _user = UserModel.fromJson(userData);
           await _storage.write(key: AppConfig.userKey, value: jsonEncode(_user!.toJson()));
-        } else {
-          // Token rejected by server — clear and force re-login
-          await _storage.delete(key: AppConfig.tokenKey);
-          await _storage.delete(key: AppConfig.userKey);
-          await _api.clearToken();
-          _user = null;
-          return false;
         }
+        // If success: false or server error, proceed with cached user.
+        // A genuine 401 will be caught by _decode() on the next real API call.
       } catch (_) {
         // Network error / offline — proceed with cached user
       }

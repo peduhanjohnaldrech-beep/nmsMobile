@@ -23,7 +23,7 @@ class LocalDbService {
 
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -59,6 +59,8 @@ class LocalDbService {
         'ALTER TABLE beneficiaries ADD COLUMN is_indigenous_people INTEGER DEFAULT 0',
         'ALTER TABLE beneficiaries ADD COLUMN ip_group TEXT',
         "ALTER TABLE beneficiaries ADD COLUMN validation_status TEXT DEFAULT 'validated'",
+        'ALTER TABLE beneficiaries ADD COLUMN submitted_at TEXT',
+        'ALTER TABLE beneficiaries ADD COLUMN submitted_by INTEGER',
         // assessments: zscore columns + validation
         'ALTER TABLE assessments ADD COLUMN height_for_age_zscore REAL',
         'ALTER TABLE assessments ADD COLUMN hfa_status TEXT',
@@ -71,6 +73,10 @@ class LocalDbService {
       ]) {
         try { await db.execute(col); } catch (_) {}
       }
+    }
+    if (oldVersion < 5) {
+      try { await db.execute('ALTER TABLE beneficiaries ADD COLUMN submitted_at TEXT'); } catch (_) {}
+      try { await db.execute('ALTER TABLE beneficiaries ADD COLUMN submitted_by INTEGER'); } catch (_) {}
     }
   }
 
@@ -105,6 +111,8 @@ class LocalDbService {
         ip_group                 TEXT,
         source                   TEXT,
         validation_status        TEXT DEFAULT 'validated',
+        submitted_at             TEXT,
+        submitted_by             INTEGER,
         created_at               TEXT,
         updated_at               TEXT,
         is_synced                INTEGER DEFAULT 1,
@@ -169,6 +177,7 @@ class LocalDbService {
     'household_monthly_income', 'income_source', 'philhealth_status',
     'is_4ps_member', 'nhts_pr_status', 'is_pwd_household',
     'is_indigenous_people', 'ip_group', 'source', 'validation_status',
+    'submitted_at', 'submitted_by',
     'created_at', 'updated_at', 'is_synced', 'is_deleted',
   };
 
@@ -206,6 +215,7 @@ class LocalDbService {
     String? search,
     String? statusFilter,
     String? sourceFilter,
+    bool hideAgedOut = false,
     int page    = 1,
     int perPage = 30,
   }) async {
@@ -213,6 +223,10 @@ class LocalDbService {
     final database = await db;
     final where = <String>['b.is_deleted = 0'];
     final args  = <dynamic>[];
+
+    if (hideAgedOut) {
+      where.add("b.date_of_birth >= date('now', '-59 months')");
+    }
 
     if (barangay != null) {
       where.add('b.barangay = ?');
@@ -249,7 +263,7 @@ class LocalDbService {
       )
       ${where.isNotEmpty ? 'WHERE ${where.join(' AND ')}' : ''}
       ${statusFilter != null && statusFilter != 'All' ? 'AND (a.nutritional_status = ? OR a.nutritional_status IS NULL)' : ''}
-      ORDER BY b.last_name, b.first_name
+      ORDER BY LOWER(b.last_name), LOWER(b.first_name)
       LIMIT ? OFFSET ?
     ''';
 
@@ -337,6 +351,23 @@ class LocalDbService {
     );
   }
 
+  Future<void> deleteBeneficiaryById(int id) async {
+    if (kIsWeb) return;
+    final database = await db;
+    await database.delete('beneficiaries', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> markBeneficiarySubmitted(int id) async {
+    if (kIsWeb) return;
+    final database = await db;
+    await database.update(
+      'beneficiaries',
+      {'submitted_at': DateTime.now().toUtc().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<List<String>> getPuroksByBarangay({String? barangay}) async {
     if (kIsWeb) return [];
     final database = await db;
@@ -417,6 +448,26 @@ class LocalDbService {
     return rows.isNotEmpty;
   }
 
+  /// Returns the existing assessment row for a given beneficiary/period/year, or null.
+  Future<Map<String, dynamic>?> getAssessmentForPeriod(int beneficiaryId, String period, int year) async {
+    if (kIsWeb) return null;
+    final database = await db;
+    final rows = await database.query(
+      'assessments',
+      where:     'beneficiary_id = ? AND period = ? AND assessment_year = ?',
+      whereArgs: [beneficiaryId, period, year],
+      orderBy:   'id DESC',
+      limit:     1,
+    );
+    return rows.isNotEmpty ? Map<String, dynamic>.from(rows.first) : null;
+  }
+
+  Future<void> deleteAssessmentById(int id) async {
+    if (kIsWeb) return;
+    final database = await db;
+    await database.delete('assessments', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<List<Map<String, dynamic>>> getAssessmentsByBeneficiary(
       int beneficiaryId) async {
     if (kIsWeb) return [];
@@ -455,12 +506,24 @@ class LocalDbService {
       args.insert(0, barangay);
     }
     final allArgs = [...args, perPage, (page - 1) * perPage];
+    // Only show the latest assessment per beneficiary per period per year
+    final latestFilter = '''
+      a.id = (
+        SELECT MAX(a2.id) FROM assessments a2
+        WHERE a2.beneficiary_id = a.beneficiary_id
+          AND a2.period = a.period
+          AND a2.assessment_year = a.assessment_year
+      )
+    ''';
+    final whereStr = where.isNotEmpty
+        ? 'WHERE $latestFilter AND ${where.join(' AND ')}'
+        : 'WHERE $latestFilter';
     final sql = '''
       SELECT a.*, b.last_name, b.first_name, b.barangay
       FROM assessments a
       LEFT JOIN beneficiaries b ON b.id = a.beneficiary_id
-      ${where.isNotEmpty ? 'WHERE ${where.join(' AND ')}' : ''}
-      ORDER BY a.assessment_date DESC
+      $whereStr
+      ORDER BY a.assessment_year DESC, a.period DESC, LOWER(b.last_name), LOWER(b.first_name)
       LIMIT ? OFFSET ?
     ''';
 

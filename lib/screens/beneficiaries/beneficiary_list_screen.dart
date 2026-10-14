@@ -34,6 +34,8 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
   int     _page         = 1;
   bool    _hasMore      = true;
   bool    _loadingMore  = false;
+  int     _readyToSubmitCount = 0;
+  bool    _showAgedOut  = true;
 
   static const _statusFilters = ['All', 'SUW', 'UW', 'Normal', 'OW', 'OB'];
 
@@ -53,6 +55,20 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
       await _sync.syncFull(barangay: brgy);
     }
     _load();
+    _loadReadyToSubmitCount();
+  }
+
+  Future<void> _loadReadyToSubmitCount() async {
+    final role = context.read<AuthProvider>().user?.role ?? '';
+    if (role != 'bns') return;
+    try {
+      final res = await _api.getReadyToSubmit();
+      if (!mounted) return;
+      if (res['success'] == true) {
+        final list = res['data']?['beneficiaries'] as List? ?? [];
+        setState(() => _readyToSubmitCount = list.length);
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadPuroks() async {
@@ -119,6 +135,7 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
         purok:        _purokFilter.isNotEmpty ? _purokFilter : null,
         search:       _search,
         statusFilter: _statusFilter != 'All' ? _statusFilter : null,
+        hideAgedOut:  !_showAgedOut,
         page:         page,
         perPage:      30,
       );
@@ -192,13 +209,15 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
             children: [
               FloatingActionButton.extended(
                 heroTag: 'fab_submit',
-                onPressed: () => Navigator.push(
+                onPressed: _readyToSubmitCount == 0 ? null : () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const SubmitToAdminScreen()),
-                ).then((_) => _load(reset: true)),
+                ).then((_) { _load(reset: true); _loadReadyToSubmitCount(); }),
                 icon:            const Icon(Icons.send_rounded),
-                label:           const Text('Submit to Admin'),
-                backgroundColor: Colors.green,
+                label:           Text(_readyToSubmitCount > 0
+                    ? 'Submit to Admin ($_readyToSubmitCount)'
+                    : 'Submit to Admin'),
+                backgroundColor: _readyToSubmitCount == 0 ? Colors.grey.shade700 : Colors.green,
                 foregroundColor: Colors.white,
               ),
               const SizedBox(height: 12),
@@ -284,6 +303,38 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
                     },
                   ),
                 ),
+                // Aged-out toggle
+                if (!kIsWeb) ...[
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() => _showAgedOut = !_showAgedOut);
+                        _load(reset: true);
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _showAgedOut ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                            size: 14,
+                            color: _showAgedOut ? Colors.orange.shade300 : const Color(0xFF607896),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _showAgedOut ? 'Showing aged-out' : 'Aged-out hidden',
+                            style: TextStyle(
+                              fontSize:   11,
+                              color: _showAgedOut ? Colors.orange.shade300 : const Color(0xFF607896),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 if (_puroks.isNotEmpty) ...[
                   const Divider(height: 1),
                   SizedBox(
