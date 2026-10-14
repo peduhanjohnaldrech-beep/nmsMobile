@@ -117,11 +117,9 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
     final data = {
       'beneficiary_id':  _selectedBene!.id,
       'assessment_date': DateFormat('yyyy-MM-dd').format(_date),
-      'weight_kg':       double.tryParse(_weightCtrl.text.trim()) ?? 0,
-      if (_heightCtrl.text.trim().isNotEmpty)
-        'height_cm': double.tryParse(_heightCtrl.text.trim()),
-      if (_muacCtrl.text.trim().isNotEmpty)
-        'muac_cm': double.tryParse(_muacCtrl.text.trim()),
+      'weight_kg': double.tryParse(_weightCtrl.text.trim()) ?? 0,
+      'height_cm': double.tryParse(_heightCtrl.text.trim()),
+      'muac_cm':   double.tryParse(_muacCtrl.text.trim()),
       'period':          _period,
       'assessment_year': _year,
       'assessed_by':     user?.fullName,
@@ -133,14 +131,6 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
 
     try {
       if (isOnline) {
-        // If replacing an existing synced record, delete it on the server first
-        if (_existingAssessment != null && (_existingAssessment['is_synced'] == 1)) {
-          await _api.deleteAssessment(_existingAssessment['id'] as int);
-          await _local.deleteAssessmentById(_existingAssessment['id'] as int);
-        } else if (_existingAssessment != null) {
-          // Unsynced — just delete locally
-          await _local.deleteAssessmentById(_existingAssessment['id'] as int);
-        }
         final result = await _api.createAssessment(data);
         if (result['success'] == true) {
           final serverData = (result['data'] as Map<String, dynamic>?)?['assessment']
@@ -148,29 +138,21 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
           if (serverData != null && !kIsWeb) {
             await _local.upsertAssessments([serverData]);
           }
-          _showSuccess(_existingAssessment != null
-              ? 'Assessment replaced successfully'
-              : 'Assessment recorded successfully');
+          _showSuccess('Assessment recorded successfully');
         } else {
           _showError(result['message'] as String? ?? 'Failed to save');
         }
       } else {
         if (!kIsWeb) {
-          // Delete existing local record if replacing
-          if (_existingAssessment != null) {
-            await _local.deleteAssessmentById(_existingAssessment['id'] as int);
-          }
           await _local.insertOfflineAssessment({
             ...data,
-            'id':                   DateTime.now().millisecondsSinceEpoch,
-            'local_id':             const Uuid().v4(),
-            'age_in_months':        _ageInMonths(_selectedBene!.dateOfBirth),
-            'nutritional_status':   'Pending',
-            'created_at':           DateTime.now().toIso8601String(),
+            'id':                 DateTime.now().millisecondsSinceEpoch,
+            'local_id':           const Uuid().v4(),
+            'age_in_months':      _ageInMonths(_selectedBene!.dateOfBirth),
+            'nutritional_status': 'Pending',
+            'created_at':         DateTime.now().toIso8601String(),
           });
-          _showSuccess(_existingAssessment != null
-              ? 'Replaced offline. Will sync when connected.'
-              : 'Saved offline. Will sync when connected.');
+          _showSuccess('Saved offline. Will sync when connected.');
         } else {
           _showError('No internet connection. Please connect and try again.');
         }
@@ -370,25 +352,26 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Height — optional
+                // Height — required
                 _buildMeasurementField(
-                  ctrl:       _heightCtrl,
-                  label:      'Height',
-                  unit:       'cm',
-                  icon:       Icons.height_rounded,
-                  hintText:   'e.g. 85.0',
-                  helperText: 'Optional',
+                  ctrl:      _heightCtrl,
+                  label:     'Height',
+                  unit:      'cm',
+                  icon:      Icons.height_rounded,
+                  required:  true,
+                  hintText:  'e.g. 85.0',
                 ),
                 const SizedBox(height: 12),
 
-                // MUAC — optional
+                // MUAC — required
                 _buildMeasurementField(
-                  ctrl:       _muacCtrl,
-                  label:      'MUAC',
-                  unit:       'cm',
-                  icon:       Icons.straighten_rounded,
-                  hintText:   'e.g. 13.5',
-                  helperText: 'Mid-Upper Arm Circumference (optional)',
+                  ctrl:      _muacCtrl,
+                  label:     'MUAC',
+                  unit:      'cm',
+                  icon:      Icons.straighten_rounded,
+                  required:  true,
+                  hintText:  'e.g. 13.5',
+                  helperText: 'Mid-Upper Arm Circumference',
                 ),
                 const SizedBox(height: 12),
 
