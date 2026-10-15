@@ -95,10 +95,10 @@ class _DispensingScreenState extends State<DispensingScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _items.isEmpty
                     ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.medical_services_outlined, size: 64, color: const Color(0xFF2A4060)),
+                        const Icon(Icons.medical_services_outlined, size: 64, color: Color(0xFF2A4060)),
                         const SizedBox(height: 12),
                         Text('No dispensing records for $_year',
-                          style: TextStyle(color: const Color(0xFF90A4B8), fontSize: 14)),
+                          style: const TextStyle(color: Color(0xFF90A4B8), fontSize: 14)),
                       ]))
                     : RefreshIndicator(
                         onRefresh: _load,

@@ -384,10 +384,10 @@ class _LoginScreenState extends State<LoginScreen>
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    Text(
+                                    const Text(
                                       'v${AppConfig.appVersion}',
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color:    Color(0xFF3A5060),
                                         fontSize: 11,
                                       ),

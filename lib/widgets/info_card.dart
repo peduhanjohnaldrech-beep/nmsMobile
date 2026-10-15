@@ -137,9 +137,9 @@ class StatCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border(
               top: BorderSide(color: color, width: 2),
-              left: BorderSide(color: const Color(0xFF1A3050), width: 1),
-              right: BorderSide(color: const Color(0xFF1A3050), width: 1),
-              bottom: BorderSide(color: const Color(0xFF1A3050), width: 1),
+              left: const BorderSide(color: Color(0xFF1A3050), width: 1),
+              right: const BorderSide(color: Color(0xFF1A3050), width: 1),
+              bottom: const BorderSide(color: Color(0xFF1A3050), width: 1),
             ),
             boxShadow: [
               BoxShadow(

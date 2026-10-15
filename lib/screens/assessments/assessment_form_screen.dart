@@ -247,7 +247,7 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 '${widget.beneficiary!.sex}  •  ${widget.beneficiary!.barangay}',
-                                style: const TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF)),
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF8FA8BF)),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -299,7 +299,7 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
               children: [
                 // Assessment date
                 const Text('Assessment Date *',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
                 const SizedBox(height: 6),
                 InkWell(
                   onTap:        _pickDate,
@@ -551,7 +551,7 @@ class _BeneficiarySearchFieldState extends State<_BeneficiarySearchField> {
               color:        const Color(0xFF0D1B2E),
               border:       Border.all(color: const Color(0xFF1A3050)),
               borderRadius: BorderRadius.circular(10),
-              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
             ),
             child: _filtered.isEmpty
                 ? const Padding(
@@ -599,7 +599,7 @@ class _BeneficiarySearchFieldState extends State<_BeneficiarySearchField> {
                                 Text(b.displayName,
                                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                                 Text('${b.barangay}  •  $ageLabel  •  ${b.sex}',
-                                    style: TextStyle(fontSize: 11, color: const Color(0xFF90A4B8))),
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
                               ],
                             )),
                           ]),

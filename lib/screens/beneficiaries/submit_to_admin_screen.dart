@@ -156,10 +156,10 @@ class _State extends State<SubmitToAdminScreen> {
                         const SizedBox(height: 16),
                         const Text('All done!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
-                        Text(
+                        const Text(
                           'No validated beneficiaries\nwaiting to be submitted.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: const Color(0xFF90A4B8)),
+                          style: TextStyle(color: Color(0xFF90A4B8)),
                         ),
                       ]),
                     )
@@ -191,7 +191,11 @@ class _State extends State<SubmitToAdminScreen> {
                               final selected = _selected.contains(id);
                               return GestureDetector(
                                 onTap: () => setState(() {
-                                  if (selected) _selected.remove(id); else _selected.add(id);
+                                  if (selected) {
+                                    _selected.remove(id);
+                                  } else {
+                                    _selected.add(id);
+                                  }
                                 }),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 150),
@@ -209,7 +213,11 @@ class _State extends State<SubmitToAdminScreen> {
                                       activeColor:   Colors.green,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                       onChanged: (_) => setState(() {
-                                        if (selected) _selected.remove(id); else _selected.add(id);
+                                        if (selected) {
+                                          _selected.remove(id);
+                                        } else {
+                                          _selected.add(id);
+                                        }
                                       }),
                                     ),
                                     title: Text(
@@ -222,7 +230,7 @@ class _State extends State<SubmitToAdminScreen> {
                                     ),
                                     trailing: selected
                                         ? const Icon(Icons.check_circle_rounded, color: Colors.green)
-                                        : Icon(Icons.circle_outlined, color: const Color(0xFF2A4060)),
+                                        : const Icon(Icons.circle_outlined, color: Color(0xFF2A4060)),
                                   ),
                                 ),
                               );

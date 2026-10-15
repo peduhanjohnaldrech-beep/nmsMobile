@@ -80,12 +80,13 @@ class _State extends State<BeneficiaryFollowupScreen> {
                                     : const Icon(Icons.chevron_right, color: Color(0xFF616161)),
                                 onTap: () async {
                                   // fetch full beneficiary then navigate to detail
+                                  final nav = Navigator.of(context);
                                   final res = await _api.getBeneficiary(b['id'] as int);
                                   if (!mounted) return;
                                   if (res['success'] == true) {
                                     final bene = BeneficiaryModel.fromJson(
                                       (res['data']['beneficiary'] as Map<String, dynamic>));
-                                    Navigator.pushNamed(context, '/beneficiaries/detail', arguments: bene);
+                                    nav.pushNamed('/beneficiaries/detail', arguments: bene);
                                   }
                                 },
                               );

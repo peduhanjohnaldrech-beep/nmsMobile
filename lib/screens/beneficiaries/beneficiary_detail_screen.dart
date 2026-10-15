@@ -153,6 +153,8 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                   icon: const Icon(Icons.delete_outline),
                   tooltip: 'Delete',
                   onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final nav = Navigator.of(context);
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
@@ -182,10 +184,10 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                     if (confirm == true && mounted) {
                       final res = await _api.deleteBeneficiary(_bene.id);
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Moved to trash')));
+                        messenger.showSnackBar(SnackBar(content: Text(res['message'] ?? 'Moved to trash')));
                         if (res['success'] == true) {
                           await _local.deleteBeneficiaryById(_bene.id);
-                          if (mounted) Navigator.pop(context, true);
+                          if (mounted) nav.pop(true);
                         }
                       }
                     }
@@ -347,7 +349,7 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                             ],
                             const SizedBox(height: 10),
                             Row(children: [
-                              Icon(Icons.calendar_today_rounded, size: 12, color: const Color(0xFF4A6080)),
+                              const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF4A6080)),
                               const SizedBox(width: 4),
                               Text(
                                 '${_formatDate(latestAssessment.assessmentDate)}  •  ${latestAssessment.periodDisplay}',
@@ -673,7 +675,7 @@ class _ZscoreChip extends StatelessWidget {
       border: Border.all(color: const Color(0xFF1A3050)),
     ),
     child: Text('$label: $value',
-      style: const TextStyle(fontSize: 11, color: const Color(0xFF8FA8BF), fontWeight: FontWeight.w500)),
+      style: const TextStyle(fontSize: 11, color: Color(0xFF8FA8BF), fontWeight: FontWeight.w500)),
   );
 }
 
@@ -716,12 +718,12 @@ class _AssessmentHistoryCard extends StatelessWidget {
             const SizedBox(height: 10),
             const Divider(height: 1),
             if (assessments.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
                 child: Column(children: [
-                  Icon(Icons.monitor_weight_outlined, size: 40, color: const Color(0xFF2A4060)),
-                  const SizedBox(height: 8),
-                  const Text('No assessments recorded yet.',
+                  Icon(Icons.monitor_weight_outlined, size: 40, color: Color(0xFF2A4060)),
+                  SizedBox(height: 8),
+                  Text('No assessments recorded yet.',
                       style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 13)),
                 ]),
               )
@@ -801,10 +803,10 @@ class _AssessmentHistoryCard extends StatelessWidget {
                                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                                     if (a.heightCm != null)
                                       Text('${a.heightCm} cm',
-                                          style: const TextStyle(fontSize: 11, color: const Color(0xFF8FA8BF))),
+                                          style: const TextStyle(fontSize: 11, color: Color(0xFF8FA8BF))),
                                     if (a.muacCm != null)
                                       Text('MUAC: ${a.muacCm} cm',
-                                          style: const TextStyle(fontSize: 11, color: const Color(0xFF8FA8BF))),
+                                          style: const TextStyle(fontSize: 11, color: Color(0xFF8FA8BF))),
                                     Text(a.ageDisplay,
                                         style: const TextStyle(fontSize: 11, color: Color(0xFF9E9E9E))),
                                   ],

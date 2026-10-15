@@ -422,13 +422,13 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline_rounded, size: 64, color: const Color(0xFF2A4060)),
+          const Icon(Icons.people_outline_rounded, size: 64, color: Color(0xFF2A4060)),
           const SizedBox(height: 16),
           Text(
             _search.isNotEmpty
                 ? 'No results for "$_search"'
                 : 'No beneficiaries found',
-            style: TextStyle(color: const Color(0xFF90A4B8), fontSize: 16),
+            style: const TextStyle(color: Color(0xFF90A4B8), fontSize: 16),
           ),
           const SizedBox(height: 8),
           if (_search.isEmpty)
@@ -503,13 +503,13 @@ class _BeneficiaryCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 12, color: const Color(0xFF607896)),
+                        const Icon(Icons.location_on_outlined,
+                            size: 12, color: Color(0xFF607896)),
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
                             '${b.barangay}${b.purokZone != null ? " • ${b.purokZone}" : ""}',
-                            style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -519,7 +519,7 @@ class _BeneficiaryCard extends StatelessWidget {
                     Row(children: [
                       Text(
                         '${b.sex} • ${b.ageInYears} yrs old',
-                        style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
                       ),
                       if (b.ageInMonths >= 60) ...[
                         const SizedBox(width: 6),
@@ -529,8 +529,8 @@ class _BeneficiaryCard extends StatelessWidget {
                             color: const Color(0xFF152236),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text('Aged Out',
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF90A4B8))),
+                          child: const Text('Aged Out',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF90A4B8))),
                         ),
                       ],
                     ]),
@@ -567,8 +567,8 @@ class _BeneficiaryCard extends StatelessWidget {
                   else if (b.latestStatus != null)
                     StatusBadge(status: b.latestStatus!),
                   const SizedBox(height: 6),
-                  Icon(Icons.chevron_right_rounded,
-                      color: const Color(0xFF4A6080), size: 20),
+                  const Icon(Icons.chevron_right_rounded,
+                      color: Color(0xFF4A6080), size: 20),
                 ],
               ),
             ],

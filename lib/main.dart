@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:path_provider/path_provider.dart';
 import 'config/app_config.dart';
 import 'services/auth_provider.dart';
 import 'services/sync_service.dart';
@@ -111,8 +109,8 @@ class NmsApp extends StatelessWidget {
           fillColor: const Color(0xFF0D1B2E),
           labelStyle: const TextStyle(color: Color(0xFF7B8FA6)),
           hintStyle: const TextStyle(color: Color(0xFF4A6070)),
-          prefixIconColor: Color(0xFF7B8FA6),
-          suffixIconColor: Color(0xFF7B8FA6),
+          prefixIconColor: const Color(0xFF7B8FA6),
+          suffixIconColor: const Color(0xFF7B8FA6),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -815,14 +813,10 @@ class _ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<_ProfilePage> {
-  final _api    = ApiService();
   final _urlCtrl = TextEditingController();
   String? _lastSync;
   bool    _editingUrl     = false;
   bool    _saving         = false;
-  List<dynamic> _backups  = [];
-  bool   _loadingBackups  = false;
-  String? _downloadingFile;
 
   @override
   void initState() {
@@ -840,64 +834,7 @@ class _ProfilePageState extends State<_ProfilePage> {
         _lastSync     = sync;
       });
     }
-    // Load backup list for admin
-    if (!mounted) return;
-    final user = context.read<AuthProvider>().user;
-    if (user?.isAdmin == true) _loadBackups();
   }
-
-  Future<void> _loadBackups() async {
-    if (!mounted) return;
-    setState(() => _loadingBackups = true);
-    try {
-      final list = await _api.listBackups();
-      if (mounted) setState(() => _backups = list);
-    } catch (_) {}
-    if (mounted) setState(() => _loadingBackups = false);
-  }
-
-  Future<void> _downloadBackup(String filename) async {
-    setState(() => _downloadingFile = filename);
-    try {
-      final bytes = await _api.downloadBackup(filename);
-      if (!mounted) return;
-      if (bytes == null) {
-        _snack('Download failed', false);
-        return;
-      }
-      final dir  = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$filename');
-      await file.writeAsBytes(bytes);
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: const Row(children: [
-              Icon(Icons.check_circle_rounded, color: Colors.green),
-              SizedBox(width: 8),
-              Text('Backup Saved', style: TextStyle(fontSize: 16)),
-            ]),
-            content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(filename, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              const SizedBox(height: 6),
-              Text(file.path, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-            ]),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      _snack('Error: $e', false);
-    } finally {
-      if (mounted) setState(() => _downloadingFile = null);
-    }
-  }
-
-  void _snack(String msg, bool ok) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(msg), backgroundColor: ok ? Colors.green : Colors.red, behavior: SnackBarBehavior.floating));
 
   Future<void> _saveUrl() async {
     setState(() => _saving = true);

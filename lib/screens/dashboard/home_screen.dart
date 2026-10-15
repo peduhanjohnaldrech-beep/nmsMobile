@@ -110,21 +110,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (mounted) {
       setState(() => _syncing = false);
+      final messenger = ScaffoldMessenger.of(context);
       await _loadAll();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: result.success ? Colors.green : Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: result.success ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth  = context.watch<AuthProvider>();
-    final user  = auth.user;
+    context.watch<AuthProvider>();
     final theme = Theme.of(context);
 
     return Scaffold(

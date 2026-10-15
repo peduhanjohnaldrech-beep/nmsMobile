@@ -25,7 +25,6 @@ class _DspMonitoringFormScreenState extends State<DspMonitoringFormScreen> {
   Map<String, dynamic>?      _selected;
   bool   _loadingEnrollments = false;
   bool   _saving = false;
-  DateTime _date = DateTime.now();
 
   @override
   void initState() {
@@ -60,22 +59,6 @@ class _DspMonitoringFormScreenState extends State<DspMonitoringFormScreen> {
     }
   }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context:     context,
-      initialDate: _date,
-      firstDate:   DateTime(2020),
-      lastDate:    DateTime.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: Color(0xFF1565C0)),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) setState(() => _date = picked);
-  }
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selected == null) {
@@ -90,7 +73,7 @@ class _DspMonitoringFormScreenState extends State<DspMonitoringFormScreen> {
       'enrollment_id':   _selected!['id'],
       'beneficiary_id':  _selected!['beneficiary_id'],
       'sex':             _selected!['sex'],
-      'monitoring_date': DateFormat('yyyy-MM-dd').format(_date),
+      'monitoring_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
       'weight_kg':       double.tryParse(_weightCtrl.text.trim()),
       'height_cm':       _heightCtrl.text.trim().isNotEmpty
                              ? double.tryParse(_heightCtrl.text.trim())
@@ -170,35 +153,6 @@ class _DspMonitoringFormScreenState extends State<DspMonitoringFormScreen> {
                   validator: (_) => _selected == null ? 'Select a child' : null,
                 ),
               ],
-            ],
-          ),
-
-          // ── Date ───────────────────────────────────────────
-          _SectionCard(
-            title: 'Monitoring Date',
-            icon:  Icons.calendar_month_rounded,
-            children: [
-              InkWell(
-                onTap:        _pickDate,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  decoration: BoxDecoration(
-                    border:       Border.all(color: Colors.blue.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.calendar_today_rounded, size: 18, color: Colors.blue.shade700),
-                    const SizedBox(width: 10),
-                    Text(
-                      DateFormat('MMMM d, yyyy').format(_date),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    const Icon(Icons.edit_calendar_rounded, size: 16, color: Color(0xFF616161)),
-                  ]),
-                ),
-              ),
             ],
           ),
 

@@ -39,9 +39,15 @@ class _State extends State<AssessmentBatchScreen> {
 
   @override
   void dispose() {
-    for (final c in _weightCtrl.values) c.dispose();
-    for (final c in _heightCtrl.values) c.dispose();
-    for (final c in _muacCtrl.values)   c.dispose();
+    for (final c in _weightCtrl.values) {
+      c.dispose();
+    }
+    for (final c in _heightCtrl.values) {
+      c.dispose();
+    }
+    for (final c in _muacCtrl.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -137,9 +143,15 @@ class _State extends State<AssessmentBatchScreen> {
         ));
     if (res['success'] == true) {
       // Clear all entries
-      for (final c in _weightCtrl.values) c.clear();
-      for (final c in _heightCtrl.values) c.clear();
-      for (final c in _muacCtrl.values)   c.clear();
+      for (final c in _weightCtrl.values) {
+        c.clear();
+      }
+      for (final c in _heightCtrl.values) {
+        c.clear();
+      }
+      for (final c in _muacCtrl.values) {
+        c.clear();
+      }
       Navigator.pop(context, true);
     }
   }
@@ -290,13 +302,13 @@ class _State extends State<AssessmentBatchScreen> {
                                   child: TextFormField(
                                     controller: _weightCtrl[id],
                                     style: const TextStyle(color: Color(0xFFE8F4FD), fontSize: 13),
-                                    decoration: InputDecoration(
+                                    decoration: const InputDecoration(
                                       hintText: 'kg *',
-                                      hintStyle: const TextStyle(color: Color(0xFF4A6080), fontSize: 12),
-                                      border: const OutlineInputBorder(),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                      hintStyle: TextStyle(color: Color(0xFF4A6080), fontSize: 12),
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                                       filled: true,
-                                      fillColor: const Color(0xFF0D1B2E),
+                                      fillColor: Color(0xFF0D1B2E),
                                     ),
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],

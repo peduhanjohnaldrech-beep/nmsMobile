@@ -507,7 +507,7 @@ class LocalDbService {
     }
     final allArgs = [...args, perPage, (page - 1) * perPage];
     // Only show the latest assessment per beneficiary per period per year
-    final latestFilter = '''
+    const latestFilter = '''
       a.id = (
         SELECT MAX(a2.id) FROM assessments a2
         WHERE a2.beneficiary_id = a.beneficiary_id

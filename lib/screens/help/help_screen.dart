@@ -40,20 +40,17 @@ class _HelpItem {
   const _HelpItem(this.title, this.icon, this.description);
 }
 
-class _HelpCard extends StatefulWidget {
+class _HelpCard extends StatelessWidget {
   final _HelpItem item;
-  const _HelpCard({required this.item, super.key});
-  @override State<_HelpCard> createState() => _HelpCardState();
-}
+  const _HelpCard({required this.item});
 
-class _HelpCardState extends State<_HelpCard> {
   @override
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.only(bottom: 8),
     child: ExpansionTile(
-      leading: Icon(widget.item.icon, color: const Color(0xFF1565C0)),
-      title: Text(widget.item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      children: [Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: Text(widget.item.description, style: const TextStyle(height: 1.5)))],
+      leading: Icon(item.icon, color: const Color(0xFF1565C0)),
+      title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      children: [Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: Text(item.description, style: const TextStyle(height: 1.5)))],
     ),
   );
 }

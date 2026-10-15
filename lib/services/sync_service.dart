@@ -29,7 +29,7 @@ class SyncService {
   /// Full sync: push offline records, then pull from server.
   Future<SyncResult> sync({String? barangay}) async {
     if (!await isOnline()) {
-      return SyncResult(success: false, message: 'No internet connection');
+      return const SyncResult(success: false, message: 'No internet connection');
     }
 
     try {
@@ -91,7 +91,7 @@ class SyncService {
   /// changes that incremental sync might have missed.
   Future<SyncResult> syncFull({String? barangay}) async {
     if (!await isOnline()) {
-      return SyncResult(success: false, message: 'No internet connection');
+      return const SyncResult(success: false, message: 'No internet connection');
     }
 
     try {

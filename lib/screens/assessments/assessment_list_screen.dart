@@ -252,18 +252,18 @@ class _AssessmentListScreenState extends State<AssessmentListScreen> {
   }
 
   Widget _emptyState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assignment_outlined, size: 64, color: const Color(0xFF2A4060)),
-          const SizedBox(height: 16),
+          Icon(Icons.assignment_outlined, size: 64, color: Color(0xFF2A4060)),
+          SizedBox(height: 16),
           Text(
             'No assessments found',
-            style: TextStyle(color: const Color(0xFF90A4B8), fontSize: 16),
+            style: TextStyle(color: Color(0xFF90A4B8), fontSize: 16),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             'Tap + to record an assessment',
             style: TextStyle(color: Color(0xFF616161), fontSize: 13),
           ),
@@ -401,7 +401,7 @@ class _AssessmentCard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize:   14,
                             fontWeight: FontWeight.w700,
-                            color:      const Color(0xFFE8F4FD),
+                            color:      Color(0xFFE8F4FD),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -412,20 +412,20 @@ class _AssessmentCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_outlined,
-                          size: 12, color: const Color(0xFF607896)),
+                      const Icon(Icons.calendar_today_outlined,
+                          size: 12, color: Color(0xFF607896)),
                       const SizedBox(width: 4),
                       Text(
                         formatDate(a.assessmentDate),
-                        style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
                       ),
                       const SizedBox(width: 10),
-                      Icon(Icons.event_note_outlined,
-                          size: 12, color: const Color(0xFF607896)),
+                      const Icon(Icons.event_note_outlined,
+                          size: 12, color: Color(0xFF607896)),
                       const SizedBox(width: 4),
                       Text(
                         a.periodDisplay,
-                        style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
                       ),
                     ],
                   ),

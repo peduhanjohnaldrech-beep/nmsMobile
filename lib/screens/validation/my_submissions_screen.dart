@@ -89,10 +89,10 @@ class _State extends State<MySubmissionsScreen> with SingleTickerProviderStateMi
                   child: Padding(
                     padding: const EdgeInsets.all(32),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.cloud_off_rounded, size: 56, color: const Color(0xFF4A6080)),
+                      const Icon(Icons.cloud_off_rounded, size: 56, color: Color(0xFF4A6080)),
                       const SizedBox(height: 16),
                       Text(_error!, textAlign: TextAlign.center,
-                          style: TextStyle(color: const Color(0xFFB0BEC5))),
+                          style: const TextStyle(color: Color(0xFFB0BEC5))),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
                         onPressed: _load,
@@ -190,11 +190,11 @@ Widget _rejectionBox(String note) => Container(
 Widget _nutritionBadge(String? status) {
   if (status == null || status.isEmpty) return const SizedBox.shrink();
   final Map<String, List<Color>> map = {
-    'SUW':    [Color(0xFFFFEBEE), Color(0xFFB71C1C)],
-    'UW':     [Color(0xFFFFF3E0), Color(0xFFE65100)],
-    'Normal': [Color(0xFFE8F5E9), Color(0xFF1B5E20)],
-    'OW':     [Color(0xFFFFFDE7), Color(0xFFF57F17)],
-    'OB':     [Color(0xFFF3E5F5), Color(0xFF4A148C)],
+    'SUW':    [const Color(0xFFFFEBEE), const Color(0xFFB71C1C)],
+    'UW':     [const Color(0xFFFFF3E0), const Color(0xFFE65100)],
+    'Normal': [const Color(0xFFE8F5E9), const Color(0xFF1B5E20)],
+    'OW':     [const Color(0xFFFFFDE7), const Color(0xFFF57F17)],
+    'OB':     [const Color(0xFFF3E5F5), const Color(0xFF4A148C)],
   };
   final colors = map[status] ?? [const Color(0xFF0F1E35), const Color(0xFFCDD5DE)];
   return Container(
@@ -292,10 +292,10 @@ class _AssessmentSubmissionsState extends State<_AssessmentSubmissions>
         Icon(cfg[0] as IconData, size: 56, color: cfg[1] as Color),
         const SizedBox(height: 12),
         Text(cfg[2] as String,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF8FA8BF))),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF8FA8BF))),
         const SizedBox(height: 4),
         Text(cfg[3] as String,
-            style: TextStyle(fontSize: 12, color: const Color(0xFF607896))),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF607896))),
       ]));
     }
 
@@ -331,26 +331,26 @@ class _AssessmentSubmissionsState extends State<_AssessmentSubmissions>
               ]),
               const SizedBox(height: 6),
               Row(children: [
-                Icon(Icons.location_on_outlined, size: 12, color: const Color(0xFF607896)),
+                const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF607896)),
                 const SizedBox(width: 3),
                 Text('${a['barangay'] ?? '—'}  •  ${a['period'] ?? ''} ${a['assessment_year'] ?? ''}',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
               ]),
               const SizedBox(height: 3),
               Row(children: [
-                Icon(Icons.monitor_weight_outlined, size: 12, color: const Color(0xFF607896)),
+                const Icon(Icons.monitor_weight_outlined, size: 12, color: Color(0xFF607896)),
                 const SizedBox(width: 3),
                 Text('${a['weight_kg'] ?? '—'} kg',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFFB0BEC5))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
                 const SizedBox(width: 8),
                 _nutritionBadge(a['nutritional_status']?.toString()),
               ]),
               const SizedBox(height: 3),
               Row(children: [
-                Icon(Icons.calendar_today_rounded, size: 12, color: const Color(0xFF607896)),
+                const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF607896)),
                 const SizedBox(width: 3),
                 Text('Assessment date: ${_fmtDate(a['assessment_date']?.toString())}',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
               ]),
               if (status == 'validated' && a['validated_at'] != null) ...[
                 const SizedBox(height: 6),
@@ -462,10 +462,10 @@ class _BeneficiarySubmissionsState extends State<_BeneficiarySubmissions>
         Icon(cfg[0] as IconData, size: 56, color: cfg[1] as Color),
         const SizedBox(height: 12),
         Text(cfg[2] as String,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF8FA8BF))),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF8FA8BF))),
         const SizedBox(height: 4),
         Text(cfg[3] as String,
-            style: TextStyle(fontSize: 12, color: const Color(0xFF607896))),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF607896))),
       ]));
     }
 
@@ -512,20 +512,20 @@ class _BeneficiarySubmissionsState extends State<_BeneficiarySubmissions>
                   ),
                   const SizedBox(height: 2),
                   Row(children: [
-                    Icon(Icons.location_on_outlined, size: 12, color: const Color(0xFF607896)),
+                    const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF607896)),
                     const SizedBox(width: 2),
                     Expanded(child: Text(
                       '${b['barangay'] ?? '—'}${b['purok_zone'] != null ? ' • Purok ${b['purok_zone']}' : ''}',
-                      style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
                       overflow: TextOverflow.ellipsis,
                     )),
                   ]),
                   const SizedBox(height: 2),
                   Row(children: [
-                    Icon(Icons.cake_outlined, size: 12, color: const Color(0xFF607896)),
+                    const Icon(Icons.cake_outlined, size: 12, color: Color(0xFF607896)),
                     const SizedBox(width: 2),
                     Text('${b['date_of_birth'] ?? '—'}  •  ${b['sex'] ?? '—'}',
-                        style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
                   ]),
                 ])),
                 const SizedBox(width: 8),
@@ -533,10 +533,10 @@ class _BeneficiarySubmissionsState extends State<_BeneficiarySubmissions>
               ]),
               const SizedBox(height: 4),
               Row(children: [
-                Icon(Icons.calendar_today_rounded, size: 12, color: const Color(0xFF607896)),
+                const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF607896)),
                 const SizedBox(width: 3),
                 Text('Submitted: ${_fmtDate(b['created_at']?.toString())}',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
               ]),
               if (status == 'validated' && b['validated_at'] != null) ...[
                 const SizedBox(height: 6),

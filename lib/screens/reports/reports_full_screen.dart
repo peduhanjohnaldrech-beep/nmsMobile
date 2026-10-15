@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -55,7 +54,8 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
       _safe(_api.getReportOutcome(year: _year, barangay: brgy)),
       _safe(_api.getReportComparison(year1: _year1, year2: _year2, barangay: brgy)),
     ]);
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _opt        = results[0]['data'] as Map<String, dynamic>? ?? {};
       _dsp        = results[1]['data'] as Map<String, dynamic>? ?? {};
       _mns        = results[2]['data'] as Map<String, dynamic>? ?? {};
@@ -63,6 +63,7 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
       _comparison = results[4]['data'] as Map<String, dynamic>? ?? {};
       _loading = false;
     });
+    }
   }
 
   Future<Map<String, dynamic>> _safe(Future<Map<String, dynamic>> f) async {
@@ -195,7 +196,7 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
 
     return ListView(padding: const EdgeInsets.all(16), children: [
       _exportBar('OPT Report', [
-        _ExportOption('opt', 'csv',   Icons.table_chart_outlined, Colors.green, 'OPT (CSV)', 'Opens in Excel/Sheets'),
+        const _ExportOption('opt', 'csv',   Icons.table_chart_outlined, Colors.green, 'OPT (CSV)', 'Opens in Excel/Sheets'),
         _ExportOption('opt', 'excel', Icons.description_outlined, Colors.green.shade700, 'OPT (Excel)', 'Formatted .xlsx file'),
       ]),
       const SizedBox(height: 12),
@@ -263,7 +264,7 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
 
     return ListView(padding: const EdgeInsets.all(16), children: [
       _exportBar('DSP Report', [
-        _ExportOption('dsp', 'csv',   Icons.table_chart_outlined,  Colors.blue, 'DSP Enrollments (CSV)', 'Full enrollment list'),
+        const _ExportOption('dsp', 'csv',   Icons.table_chart_outlined,  Colors.blue, 'DSP Enrollments (CSV)', 'Full enrollment list'),
         _ExportOption('dsp', 'excel', Icons.description_outlined,  Colors.blue.shade700, 'DSP Enrollments (Excel)', 'Formatted .xlsx file'),
       ]),
       const SizedBox(height: 12),
@@ -288,7 +289,7 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
           child: Row(children: [
             const Icon(Icons.trending_up_rounded, color: Colors.teal, size: 18),
             const SizedBox(width: 8),
-            Text('Avg. Weight Gain (Completed): +${avgGain} kg',
+            Text('Avg. Weight Gain (Completed): +$avgGain kg',
                 style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w600, fontSize: 13)),
           ]),
         ),
@@ -341,10 +342,10 @@ class _State extends State<ReportsFullScreen> with SingleTickerProviderStateMixi
     return ListView(padding: const EdgeInsets.all(16), children: [
       // Export options for all 3 MNS types
       _exportBar('MNS Report', [
-        _ExportOption('mns_vita', 'csv',   Icons.vaccines_outlined,  Colors.orange, 'Vitamin A (CSV)', 'Full distribution list'),
+        const _ExportOption('mns_vita', 'csv',   Icons.vaccines_outlined,  Colors.orange, 'Vitamin A (CSV)', 'Full distribution list'),
         _ExportOption('mns_vita', 'excel', Icons.description_outlined, Colors.orange.shade700, 'Vitamin A (Excel)', '.xlsx file'),
-        _ExportOption('mns_mnp',  'csv',   Icons.medication_outlined,  Colors.purple, 'MNP (CSV)', 'Micronutrient powder list'),
-        _ExportOption('mns_lns',  'csv',   Icons.local_dining_outlined, Colors.teal, 'LNS-SQ (CSV)', 'Lipid-based supplement list'),
+        const _ExportOption('mns_mnp',  'csv',   Icons.medication_outlined,  Colors.purple, 'MNP (CSV)', 'Micronutrient powder list'),
+        const _ExportOption('mns_lns',  'csv',   Icons.local_dining_outlined, Colors.teal, 'LNS-SQ (CSV)', 'Lipid-based supplement list'),
       ]),
       const SizedBox(height: 12),
 

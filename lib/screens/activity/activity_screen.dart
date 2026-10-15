@@ -69,10 +69,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.history_rounded, size: 64, color: const Color(0xFF2A4060)),
-                  const SizedBox(height: 12),
-                  Text('No activity logs found', style: TextStyle(color: const Color(0xFF90A4B8), fontSize: 14)),
+              ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.history_rounded, size: 64, color: Color(0xFF2A4060)),
+                  SizedBox(height: 12),
+                  Text('No activity logs found', style: TextStyle(color: Color(0xFF90A4B8), fontSize: 14)),
                 ]))
               : RefreshIndicator(
                   onRefresh: _load,

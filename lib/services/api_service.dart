@@ -798,6 +798,25 @@ class ApiService {
     return _decode(res);
   }
 
+
+  Future<Map<String, dynamic>> getDspMonitoringPending() async {
+    final base = await _baseUrl();
+    final res = await _client.get(Uri.parse('$base/validation/dsp-monitoring/pending'), headers: await _headers()).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> validateDspMonitoring(int id) async {
+    final base = await _baseUrl();
+    final res = await _client.post(Uri.parse('$base/validation/dsp-monitoring/$id/validate'), headers: await _headers()).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> rejectDspMonitoring(int id, String note) async {
+    final base = await _baseUrl();
+    final res = await _client.post(Uri.parse('$base/validation/dsp-monitoring/$id/reject'), headers: await _headers(), body: jsonEncode({'note': note})).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
   // -------------------------------------------------------
   // PROGRAMS ADMIN
   // -------------------------------------------------------

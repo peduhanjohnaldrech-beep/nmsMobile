@@ -234,12 +234,9 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
       'income_source':          n(_incomeSourceCtrl),
       'is_pwd_household':       _isPwd ? 1 : 0,
       'is_indigenous_people':   _isIP  ? 1 : 0,
-      'ip_group':               _isIP  ? n(_ipGroup != null ? (TextEditingController()..text = _ipGroup!) : _guardianRelCtrl) : null,
+      'ip_group':               _isIP ? (_ipGroup?.isNotEmpty == true ? _ipGroup : null) : null,
       'source':                 'Mobile',
     };
-
-    // ip_group from dedicated field
-    data['ip_group'] = _isIP ? (_ipGroup?.isNotEmpty == true ? _ipGroup : null) : null;
 
     final isOnline = await _sync.isOnline();
     try {
@@ -390,7 +387,7 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
                 // Date of Birth
                 const SizedBox(height: 4),
                 const Text('Date of Birth *',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
                 const SizedBox(height: 6),
                 InkWell(
                   onTap:        _pickDob,
@@ -442,7 +439,7 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
 
                 // Sex
                 const Text('Sex *',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
                 const SizedBox(height: 6),
                 Row(
                   children: ['Male', 'Female'].map((s) {
@@ -483,7 +480,7 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
               icon:  Icons.location_on_outlined,
               children: [
                 const Text('Barangay *',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
                 const SizedBox(height: 6),
                 _barangays.isEmpty
                     ? OutlinedButton.icon(
@@ -544,7 +541,7 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
 
                 // PhilHealth
                 const Text('PhilHealth Status',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   value: _philhealthStatus,
@@ -578,7 +575,7 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
               children: [
                 // NHTS-PR
                 const Text('NHTS-PR Status',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   value: _nhtsStatus,
@@ -597,7 +594,7 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
 
                 // Income classification
                 const Text('Income Classification',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   value: _incomeClassification,
@@ -637,7 +634,7 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
                 if (_isIP) ...[
                   const SizedBox(height: 12),
                   const Text('IP Group / Tribe',
-                      style: TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
                   const SizedBox(height: 6),
                   TextFormField(
                     initialValue: _ipGroup,

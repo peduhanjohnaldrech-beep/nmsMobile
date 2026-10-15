@@ -34,12 +34,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final result = await _api.getReportSummary(year: _year, period: _period, barangay: brgy);
       if (result['success'] == true) {
         final data = result['data'] as Map<String, dynamic>;
-        if (mounted) setState(() {
+        if (mounted) {
+          setState(() {
           _totalBene     = (data['total_bene']     ?? 0) as int;
           _totalAssessed = (data['total_assessed'] ?? 0) as int;
           _statusCounts  = Map<String, dynamic>.from(data['status_counts'] ?? {});
           _byBarangay    = List.from(data['by_barangay'] ?? []);
         });
+        }
       }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
@@ -108,7 +110,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           ]),
                           const SizedBox(height: 12),
                           // Status breakdown
-                          _SectionTitle('Nutritional Status'),
+                          const _SectionTitle('Nutritional Status'),
                           const SizedBox(height: 8),
                           Row(children: [
                             _StatusBox('SUW',    suw.toString(),    Colors.red),
@@ -128,7 +130,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           const SizedBox(height: 20),
                           // By barangay table
                           if (_byBarangay.isNotEmpty) ...[
-                            _SectionTitle('By Barangay'),
+                            const _SectionTitle('By Barangay'),
                             const SizedBox(height: 8),
                             Card(
                               child: Column(children: [
@@ -213,7 +215,7 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
   @override
   Widget build(BuildContext context) => Text(text,
-    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFFE8F4FD)));
+    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFFE8F4FD)));
 }
 
 class _StatBox extends StatelessWidget {
@@ -227,7 +229,7 @@ class _StatBox extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color)),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 12, color: const Color(0xFF8FA8BF))),
+        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF8FA8BF))),
       ]),
     ),
   ));

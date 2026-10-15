@@ -322,15 +322,6 @@ class _DspTabState extends State<_DspTab> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  void _showUpdateModal(Map<String, dynamic> item) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _DspUpdateModal(item: item, onSaved: _load),
-    );
-  }
-
   void _showDischargeModal(Map<String, dynamic> item) {
     showModalBottomSheet(
       context: context,
@@ -430,35 +421,35 @@ class _DspTabState extends State<_DspTab> with AutomaticKeepAliveClientMixin {
                                 ]),
                                 const SizedBox(height: 4),
                                 Row(children: [
-                                  Icon(Icons.location_on_outlined, size: 12, color: const Color(0xFF607896)),
+                                  const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF607896)),
                                   const SizedBox(width: 2),
                                   Text('${e['barangay'] ?? '—'}  •  ${e['sex'] ?? ''}',
-                                      style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                                      style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
                                 ]),
                                 const SizedBox(height: 2),
                                 Row(children: [
-                                  Icon(Icons.calendar_today_rounded, size: 12, color: const Color(0xFF607896)),
+                                  const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF607896)),
                                   const SizedBox(width: 2),
                                   Text('Enrolled: ${(e['enrollment_date'] ?? '').toString().substring(0, 10.clamp(0, (e['enrollment_date'] ?? '').toString().length))}',
-                                      style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                                      style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
                                 ]),
                                 if (e['pre_weight_kg'] != null || e['post_weight_kg'] != null) ...[
                                   const SizedBox(height: 2),
                                   Row(children: [
-                                    Icon(Icons.monitor_weight_outlined, size: 12, color: const Color(0xFF607896)),
+                                    const Icon(Icons.monitor_weight_outlined, size: 12, color: Color(0xFF607896)),
                                     const SizedBox(width: 2),
                                     Text(
                                       [
                                         if (e['pre_weight_kg'] != null) 'Pre: ${e['pre_weight_kg']} kg',
                                         if (e['post_weight_kg'] != null) 'Post: ${e['post_weight_kg']} kg',
                                       ].join('  →  '),
-                                      style: TextStyle(fontSize: 12, color: const Color(0xFFB0BEC5), fontWeight: FontWeight.w500),
+                                      style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5), fontWeight: FontWeight.w500),
                                     ),
                                   ]),
                                 ],
                                 if (e['notes'] != null && e['notes'].toString().isNotEmpty) ...[
                                   const SizedBox(height: 2),
-                                  Text(e['notes'], style: TextStyle(fontSize: 11, color: const Color(0xFF607896)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  Text(e['notes'], style: const TextStyle(fontSize: 11, color: Color(0xFF607896)), maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ],
                                 if (isActive) ...[
                                   const SizedBox(height: 8),
@@ -798,11 +789,13 @@ class _MnsTabState extends State<_MnsTab>
         _api.getPrograms(type: 'mns', year: _year, period: _round, barangay: brgy, tab: 'mnp'),
         _api.getPrograms(type: 'mns', year: _year, period: _round, barangay: brgy, tab: 'lnssq'),
       ]);
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _vitAItems  = List.from(results[0]['data']?['records'] ?? []);
         _mnpItems   = List.from(results[1]['data']?['records'] ?? []);
         _lnsSqItems = List.from(results[2]['data']?['records'] ?? []);
       });
+      }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -953,7 +946,7 @@ class _MnsSubTab extends StatelessWidget {
         Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icon, size: 56, color: const Color(0xFF1E3050)),
           const SizedBox(height: 12),
-          Text(emptyMsg, style: TextStyle(color: const Color(0xFF90A4B8), fontSize: 14)),
+          Text(emptyMsg, style: const TextStyle(color: Color(0xFF90A4B8), fontSize: 14)),
         ]))
       else
         RefreshIndicator(
@@ -997,8 +990,8 @@ class _MnsSubTab extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          Text(subtitle(r), style: TextStyle(fontSize: 11, color: const Color(0xFF90A4B8))),
-                          Text(trailing(r), style: TextStyle(fontSize: 11, color: const Color(0xFF607896))),
+                          Text(subtitle(r), style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
+                          Text(trailing(r), style: const TextStyle(fontSize: 11, color: Color(0xFF607896))),
                         ])),
                         // Actions
                         if (type == 'vitamina' && onDelete != null)
@@ -1259,11 +1252,11 @@ class _OthersTab extends StatelessWidget {
                   Text(p['name'] ?? p['code'] ?? '',
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   if (p['description'] != null && p['description'].toString().isNotEmpty)
-                    Text(p['description'], style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)), maxLines: 2),
+                    Text(p['description'], style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)), maxLines: 2),
                   Text('Code: ${p['code'] ?? ''}',
                       style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
                 ])),
-                Icon(Icons.chevron_right_rounded, color: const Color(0xFF4A6080)),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF4A6080)),
               ]),
             ),
           ),
@@ -1351,7 +1344,7 @@ class _GenericProgramScreenState extends State<_GenericProgramScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final color = Colors.indigo;
+    const color = Colors.indigo;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.program['name'] ?? _code),
@@ -1524,7 +1517,7 @@ Widget _emptyState(IconData icon, String msg) => Center(child: Column(
   children: [
     Icon(icon, size: 56, color: const Color(0xFF1E3050)),
     const SizedBox(height: 12),
-    Text(msg, style: TextStyle(color: const Color(0xFF90A4B8), fontSize: 14)),
+    Text(msg, style: const TextStyle(color: Color(0xFF90A4B8), fontSize: 14)),
   ],
 ));
 
@@ -1640,7 +1633,7 @@ class _ModalSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: const Color(0xFF0B1527),
+        color: Color(0xFF0B1527),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(

@@ -12,27 +12,31 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
   final _api = ApiService();
   late TabController _tabs;
 
-  List<dynamic> _assessments   = [];
-  List<dynamic> _beneficiaries = [];
+  List<dynamic> _assessments    = [];
+  List<dynamic> _beneficiaries  = [];
+  List<dynamic> _dspMonitoring  = [];
   bool   _loading   = true;
   String? _error;
 
   // Selection state
   final Set<int> _selectedAssessments   = {};
   final Set<int> _selectedBeneficiaries = {};
+  final Set<int> _selectedDsp           = {};
   bool _batchValidating = false;
 
   // Per-item loading
   final Set<int> _validatingAssessments   = {};
   final Set<int> _validatingBeneficiaries = {};
+  final Set<int> _validatingDsp           = {};
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this)
+    _tabs = TabController(length: 3, vsync: this)
       ..addListener(() => setState(() {
         _selectedAssessments.clear();
         _selectedBeneficiaries.clear();
+        _selectedDsp.clear();
       }));
     _load();
   }
@@ -44,16 +48,18 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; _selectedAssessments.clear(); _selectedBeneficiaries.clear(); });
+    setState(() { _loading = true; _error = null; _selectedAssessments.clear(); _selectedBeneficiaries.clear(); _selectedDsp.clear(); });
     try {
       final results = await Future.wait([
         _api.getValidationPending(),
         _api.getBeneficiaryValidationPending(),
+        _api.getDspMonitoringPending(),
       ]);
       if (!mounted) return;
       setState(() {
         _assessments   = results[0]['data']?['assessments']   ?? [];
         _beneficiaries = results[1]['data']?['beneficiaries'] ?? [];
+        _dspMonitoring = results[2]['data']?['records']       ?? [];
         _loading = false;
       });
     } catch (e) {
@@ -215,20 +221,79 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
     if (res['success'] == true) _load();
   }
 
+  Future<void> _rejectDspMonitoring(Map<String, dynamic> item) async {
+    final noteCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          Icon(Icons.reply_rounded, color: Colors.orange.shade700, size: 22),
+          const SizedBox(width: 8),
+          const Text('Return for Correction'),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(
+            '${item['last_name']}, ${item['first_name']}',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'DSP Follow-up  \u2022  ${(item['monitoring_date'] ?? '').toString().substring(0, 10)}',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: noteCtrl,
+            decoration: InputDecoration(
+              labelText: 'Note *',
+              hintText: 'e.g. Weight seems incorrect, please re-measure',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+            maxLines: 3,
+            autofocus: true,
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              if (noteCtrl.text.trim().isEmpty) return;
+              Navigator.pop(ctx, true);
+            },
+            icon: const Icon(Icons.reply_rounded, size: 16),
+            label: const Text('Return'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final res = await _api.rejectDspMonitoring(item['id'] as int, noteCtrl.text.trim());
+    if (!mounted) return;
+    _showSnack(res['message'] ?? 'Done', res['success'] == true);
+    if (res['success'] == true) _load();
+  }
+
   // ── BATCH VALIDATE ──────────────────────────────────────
 
   Future<void> _batchValidateSelected() async {
+    final isDspTab    = _tabs.index == 2;
     final isAssessTab = _tabs.index == 0;
-    final selected    = isAssessTab ? _selectedAssessments : _selectedBeneficiaries;
-    final type        = isAssessTab ? 'assessment' : 'beneficiary';
-    final label       = isAssessTab ? 'assessment' : 'beneficiary';
+    final selected    = isAssessTab ? _selectedAssessments : isDspTab ? _selectedDsp : _selectedBeneficiaries;
+    final label       = isAssessTab ? 'assessment' : isDspTab ? 'DSP follow-up' : 'beneficiary';
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Batch Validate'),
         content: Text(
-          'Validate ${selected.length} selected ${label}${selected.length > 1 ? 's' : ''}?\n\n'
+          'Validate ${selected.length} selected $label${selected.length > 1 ? 's' : ''}?\n\n'
           'This will approve all selected records.',
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -245,12 +310,25 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
     if (confirmed != true || !mounted) return;
 
     setState(() => _batchValidating = true);
-    final res = await _api.batchValidate(type: type, ids: selected.toList());
-    if (!mounted) return;
-    setState(() => _batchValidating = false);
 
-    _showSnack(res['message'] ?? 'Done', res['success'] == true);
-    if (res['success'] == true) _load();
+    if (isDspTab) {
+      int ok = 0;
+      for (final id in selected.toList()) {
+        final res = await _api.validateDspMonitoring(id);
+        if (res['success'] == true) ok++;
+      }
+      if (!mounted) return;
+      setState(() => _batchValidating = false);
+      _showSnack('Validated $ok DSP follow-up${ok != 1 ? 's' : ''}', ok > 0);
+    } else {
+      final type = isAssessTab ? 'assessment' : 'beneficiary';
+      final res  = await _api.batchValidate(type: type, ids: selected.toList());
+      if (!mounted) return;
+      setState(() => _batchValidating = false);
+      _showSnack(res['message'] ?? 'Done', res['success'] == true);
+    }
+
+    if (mounted) _load();
   }
 
   void _showSnack(String msg, bool success) {
@@ -316,11 +394,11 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
   Widget _statusBadge(String? status) {
     if (status == null || status.isEmpty) return const SizedBox.shrink();
     final Map<String, List<Color>> map = {
-      'SUW':    [Color(0xFFFFEBEE), Color(0xFFB71C1C)],
-      'UW':     [Color(0xFFFFF3E0), Color(0xFFE65100)],
-      'Normal': [Color(0xFFE8F5E9), Color(0xFF1B5E20)],
-      'OW':     [Color(0xFFFFFDE7), Color(0xFFF57F17)],
-      'OB':     [Color(0xFFF3E5F5), Color(0xFF4A148C)],
+      'SUW':    [const Color(0xFFFFEBEE), const Color(0xFFB71C1C)],
+      'UW':     [const Color(0xFFFFF3E0), const Color(0xFFE65100)],
+      'Normal': [const Color(0xFFE8F5E9), const Color(0xFF1B5E20)],
+      'OW':     [const Color(0xFFFFFDE7), const Color(0xFFF57F17)],
+      'OB':     [const Color(0xFFF3E5F5), const Color(0xFF4A148C)],
     };
     final colors = map[status] ?? [const Color(0xFF0F1E35), const Color(0xFFCDD5DE)];
     return Container(
@@ -345,10 +423,12 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
   Widget build(BuildContext context) {
     final aCount = _assessments.length;
     final bCount = _beneficiaries.length;
+    final dCount = _dspMonitoring.length;
 
+    final isDspTab      = _tabs.index == 2;
     final isAssessTab   = _tabs.index == 0;
-    final selectedCount = isAssessTab ? _selectedAssessments.length : _selectedBeneficiaries.length;
-    final totalCount    = isAssessTab ? aCount : bCount;
+    final selectedCount = isAssessTab ? _selectedAssessments.length : isDspTab ? _selectedDsp.length : _selectedBeneficiaries.length;
+    final totalCount    = isAssessTab ? aCount : isDspTab ? dCount : bCount;
 
     return Scaffold(
       appBar: AppBar(
@@ -379,6 +459,12 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                   } else {
                     _selectedAssessments.addAll(_assessments.map((a) => a['id'] as int));
                   }
+                } else if (isDspTab) {
+                  if (_selectedDsp.length == dCount) {
+                    _selectedDsp.clear();
+                  } else {
+                    _selectedDsp.addAll(_dspMonitoring.map((d) => d['id'] as int));
+                  }
                 } else {
                   if (_selectedBeneficiaries.length == bCount) {
                     _selectedBeneficiaries.clear();
@@ -388,9 +474,10 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                 }
               }),
               child: Text(
-                (isAssessTab ? _selectedAssessments.length == aCount : _selectedBeneficiaries.length == bCount)
-                    ? 'Deselect All'
-                    : 'Select All',
+                (isAssessTab ? _selectedAssessments.length == aCount
+                    : isDspTab ? _selectedDsp.length == dCount
+                    : _selectedBeneficiaries.length == bCount)
+                    ? 'Deselect All' : 'Select All',
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -404,6 +491,7 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
           tabs: [
             Tab(text: 'Assessments ($aCount)'),
             Tab(text: 'Beneficiaries ($bCount)'),
+            Tab(text: 'DSP Follow-ups ($dCount)'),
           ],
         ),
       ),
@@ -414,10 +502,10 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                   child: Padding(
                     padding: const EdgeInsets.all(32),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.cloud_off_rounded, size: 56, color: const Color(0xFF4A6080)),
+                      const Icon(Icons.cloud_off_rounded, size: 56, color: Color(0xFF4A6080)),
                       const SizedBox(height: 16),
                       Text(_error!, textAlign: TextAlign.center,
-                          style: TextStyle(color: const Color(0xFFB0BEC5))),
+                          style: const TextStyle(color: Color(0xFFB0BEC5))),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
                         onPressed: _load,
@@ -432,6 +520,7 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                   child: TabBarView(controller: _tabs, children: [
                     _buildAssessmentList(),
                     _buildBeneficiaryList(),
+                    _buildDspMonitoringList(),
                   ]),
                 ),
     );
@@ -445,8 +534,8 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
         const Text('All assessments validated!',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF388E3C))),
         const SizedBox(height: 4),
-        Text('No pending assessments to review.',
-            style: TextStyle(fontSize: 13, color: const Color(0xFF90A4B8))),
+        const Text('No pending assessments to review.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF90A4B8))),
       ]));
     }
 
@@ -478,8 +567,11 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                     activeColor: Colors.green,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                     onChanged: (_) => setState(() {
-                      if (isSelected) _selectedAssessments.remove(id);
-                      else _selectedAssessments.add(id);
+                      if (isSelected) {
+                        _selectedAssessments.remove(id);
+                      } else {
+                        _selectedAssessments.add(id);
+                      }
                     }),
                   ),
                   Expanded(
@@ -493,24 +585,24 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                       ]),
                       const SizedBox(height: 4),
                       Row(children: [
-                        Icon(Icons.location_on_outlined, size: 12, color: const Color(0xFF607896)),
+                        const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF607896)),
                         const SizedBox(width: 2),
                         Text('${a['barangay']}  •  ${a['sex'] ?? ''}  •  ${a['age_in_months'] ?? '—'} months',
-                            style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
                       ]),
                       const SizedBox(height: 2),
                       Row(children: [
-                        Icon(Icons.monitor_weight_outlined, size: 12, color: const Color(0xFF607896)),
+                        const Icon(Icons.monitor_weight_outlined, size: 12, color: Color(0xFF607896)),
                         const SizedBox(width: 2),
                         Text('${a['weight_kg']} kg${a['height_cm'] != null ? '  •  ${a['height_cm']} cm' : ''}  •  ${a['period']} ${a['assessment_year']}',
-                            style: TextStyle(fontSize: 12, color: const Color(0xFFB0BEC5))),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
                       ]),
                       const SizedBox(height: 2),
                       Row(children: [
-                        Icon(Icons.person_outline, size: 12, color: const Color(0xFF607896)),
+                        const Icon(Icons.person_outline, size: 12, color: Color(0xFF607896)),
                         const SizedBox(width: 2),
                         Text('By: ${a['submitted_by_name'] ?? a['assessed_by'] ?? '—'}  •  ${_formatDate(a['assessment_date']?.toString())}',
-                            style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
                       ]),
                       const SizedBox(height: 10),
                       Row(children: [
@@ -582,8 +674,8 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
         const Text('All registrations validated!',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF388E3C))),
         const SizedBox(height: 4),
-        Text('No pending beneficiaries to review.',
-            style: TextStyle(fontSize: 13, color: const Color(0xFF90A4B8))),
+        const Text('No pending beneficiaries to review.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF90A4B8))),
       ]));
     }
 
@@ -615,8 +707,11 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                     activeColor: Colors.green,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                     onChanged: (_) => setState(() {
-                      if (isSelected) _selectedBeneficiaries.remove(id);
-                      else _selectedBeneficiaries.add(id);
+                      if (isSelected) {
+                        _selectedBeneficiaries.remove(id);
+                      } else {
+                        _selectedBeneficiaries.add(id);
+                      }
                     }),
                   ),
                   Expanded(
@@ -630,26 +725,26 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
                       ]),
                       const SizedBox(height: 4),
                       Row(children: [
-                        Icon(Icons.location_on_outlined, size: 12, color: const Color(0xFF607896)),
+                        const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF607896)),
                         const SizedBox(width: 2),
                         Text(
                           '${b['barangay']}${b['purok_zone'] != null ? ' • Purok ${b['purok_zone']}' : ''}',
-                          style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8)),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8)),
                         ),
                       ]),
                       const SizedBox(height: 2),
                       Row(children: [
-                        Icon(Icons.cake_outlined, size: 12, color: const Color(0xFF607896)),
+                        const Icon(Icons.cake_outlined, size: 12, color: Color(0xFF607896)),
                         const SizedBox(width: 2),
                         Text('${b['date_of_birth'] ?? '—'}  •  ${b['sex'] ?? '—'}',
-                            style: TextStyle(fontSize: 12, color: const Color(0xFFB0BEC5))),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
                       ]),
                       const SizedBox(height: 2),
                       Row(children: [
-                        Icon(Icons.person_outline, size: 12, color: const Color(0xFF607896)),
+                        const Icon(Icons.person_outline, size: 12, color: Color(0xFF607896)),
                         const SizedBox(width: 2),
                         Text('Submitted by: ${b['submitted_by_name'] ?? '—'}  •  ${_formatDate(b['created_at']?.toString())}',
-                            style: TextStyle(fontSize: 12, color: const Color(0xFF90A4B8))),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
                       ]),
                       const SizedBox(height: 10),
                       Row(children: [
@@ -718,4 +813,146 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
     decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(12)),
     child: const Text('Pending', style: TextStyle(color: Color(0xFFE65100), fontSize: 11, fontWeight: FontWeight.bold)),
   );
+
+  Widget _buildDspMonitoringList() {
+    if (_dspMonitoring.isEmpty) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.monitor_weight_outlined, size: 64, color: Colors.green.shade300),
+        const SizedBox(height: 12),
+        const Text('All follow-ups validated!',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF388E3C))),
+        const SizedBox(height: 4),
+        const Text('No pending DSP follow-up records.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF90A4B8))),
+      ]));
+    }
+
+    return ListView.builder(
+      itemCount: _dspMonitoring.length,
+      padding: const EdgeInsets.only(bottom: 20),
+      itemBuilder: (_, i) {
+        final d          = _dspMonitoring[i];
+        final id         = d['id'] as int;
+        final isSelected = _selectedDsp.contains(id);
+        final date       = (d['monitoring_date'] ?? '').toString();
+        final dateShort  = date.length >= 10 ? date.substring(0, 10) : date;
+
+        Color statusBg   = Colors.grey.shade100;
+        Color statusFg   = Colors.grey.shade700;
+        final ns = d['nutritional_status']?.toString() ?? '';
+        if (ns == 'SUW')    { statusBg = const Color(0xFFFFEBEE); statusFg = const Color(0xFFB71C1C); }
+        else if (ns == 'UW'){ statusBg = const Color(0xFFFFF3E0); statusFg = const Color(0xFFE65100); }
+        else if (ns == 'Normal') { statusBg = const Color(0xFFE8F5E9); statusFg = const Color(0xFF1B5E20); }
+
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          color: isSelected ? Colors.green.shade50 : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: isSelected ? BorderSide(color: Colors.green.shade400, width: 1.5) : BorderSide.none,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 12, 12, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                  value: isSelected,
+                  activeColor: Colors.green,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  onChanged: (_) => setState(() {
+                    if (isSelected) {
+                      _selectedDsp.remove(id);
+                    } else {
+                      _selectedDsp.add(id);
+                    }
+                  }),
+                ),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(
+                        '${d['last_name']}, ${d['first_name']}',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      )),
+                      if (ns.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(8)),
+                          child: Text(ns, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusFg)),
+                        ),
+                    ]),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF607896)),
+                      const SizedBox(width: 2),
+                      Text('${d['barangay']}  \u2022  ${d['intervention_type'] ?? 'DSP'}',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
+                    ]),
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      const Icon(Icons.monitor_weight_outlined, size: 12, color: Color(0xFF607896)),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${d['weight_kg']} kg'
+                        '${d['height_cm'] != null ? "  \u2022  ${d['height_cm']} cm" : ""}'
+                        '${d['muac_cm'] != null ? "  \u2022  MUAC ${d['muac_cm']} cm" : ""}',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5)),
+                      ),
+                    ]),
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      const Icon(Icons.person_outline, size: 12, color: Color(0xFF607896)),
+                      const SizedBox(width: 2),
+                      Text('By: ${d['monitored_by'] ?? d['submitted_by_name'] ?? '\u2014'}  \u2022  $dateShort',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
+                    ]),
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      Expanded(child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orange.shade700,
+                          side: BorderSide(color: Colors.orange.shade200),
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 36),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.reply_rounded, size: 15),
+                        label: const Text('Return', style: TextStyle(fontSize: 13)),
+                        onPressed: () => _rejectDspMonitoring(d),
+                      )),
+                      const SizedBox(width: 8),
+                      Expanded(child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade600,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 36),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: _validatingDsp.contains(id)
+                            ? const SizedBox(width: 14, height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.check_rounded, size: 15),
+                        label: const Text('Validate', style: TextStyle(fontSize: 13)),
+                        onPressed: _validatingDsp.contains(id) ? null : () async {
+                          setState(() => _validatingDsp.add(id));
+                          final res = await _api.validateDspMonitoring(id);
+                          if (!mounted) return;
+                          setState(() => _validatingDsp.remove(id));
+                          _showSnack(res['message'] ?? 'Done', res['success'] == true);
+                          if (res['success'] == true) _load();
+                        },
+                      )),
+                    ]),
+                  ]),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 }
