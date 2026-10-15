@@ -451,6 +451,12 @@ class _DspTabState extends State<_DspTab> with AutomaticKeepAliveClientMixin {
                                   const SizedBox(height: 2),
                                   Text(e['notes'], style: const TextStyle(fontSize: 11, color: Color(0xFF607896)), maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ],
+                                if ((e['monitoring_records'] as List?)?.isNotEmpty == true) ...[
+                                  const SizedBox(height: 6),
+                                  const Divider(height: 1),
+                                  const SizedBox(height: 4),
+                                  _MonitoringHistory(records: List<Map<String, dynamic>>.from(e['monitoring_records'] as List)),
+                                ],
                                 if (isActive) ...[
                                   const SizedBox(height: 8),
                                   Row(children: [
@@ -1667,6 +1673,90 @@ class _ModalSheet extends StatelessWidget {
           ),
         ]),
       ),
+    );
+  }
+}
+
+// ─── Monthly monitoring history (expandable) ─────────────
+class _MonitoringHistory extends StatefulWidget {
+  final List<Map<String, dynamic>> records;
+  const _MonitoringHistory({required this.records});
+  @override State<_MonitoringHistory> createState() => _MonitoringHistoryState();
+}
+
+class _MonitoringHistoryState extends State<_MonitoringHistory> {
+  bool _expanded = false;
+
+  Color _statusColor(String? s) => switch (s) {
+    'SUW' || 'Severely Underweight' => Colors.red.shade700,
+    'UW'  || 'Underweight'          => Colors.orange.shade700,
+    'Normal'                        => Colors.green.shade700,
+    'OW'  || 'Overweight'           => Colors.purple.shade700,
+    _                               => const Color(0xFF90A4B8),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final count  = widget.records.length;
+    final latest = widget.records.last; // ASC order → last = most recent
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(children: [
+              Icon(Icons.history_rounded, size: 13, color: Colors.blue.shade600),
+              const SizedBox(width: 4),
+              Text(
+                '$count monthly check${count > 1 ? 's' : ''}  •  latest: ${(latest['monitoring_date'] ?? '').toString().substring(0, 10)}',
+                style: TextStyle(fontSize: 11, color: Colors.blue.shade600, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  size: 14, color: Colors.blue.shade400),
+            ]),
+          ),
+        ),
+        if (_expanded) ...[
+          const SizedBox(height: 4),
+          ...widget.records.reversed.map((r) {
+            final status = r['nutritional_status']?.toString();
+            return Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 4),
+              child: Row(children: [
+                Text(
+                  (r['monitoring_date'] ?? '').toString().substring(0, 10),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF607896), fontFamily: 'monospace'),
+                ),
+                const SizedBox(width: 8),
+                Text('${r['weight_kg']} kg',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                if (r['muac_cm'] != null) ...[
+                  const SizedBox(width: 6),
+                  Text('MUAC ${r['muac_cm']}',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
+                ],
+                if (status != null) ...[
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: _statusColor(status).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(status,
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+                            color: _statusColor(status))),
+                  ),
+                ],
+              ]),
+            );
+          }),
+        ],
+      ],
     );
   }
 }
