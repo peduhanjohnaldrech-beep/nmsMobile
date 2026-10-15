@@ -852,29 +852,6 @@ class ApiService {
   }
 
   // -------------------------------------------------------
-  // BACKUP
-  // -------------------------------------------------------
-
-  Future<List<dynamic>> listBackups() async {
-    final base = await _baseUrl();
-    final res  = await _client
-        .get(Uri.parse('$base/backup/list'), headers: await _headers())
-        .timeout(const Duration(seconds: 15));
-    final decoded = _decode(res);
-    return List<dynamic>.from(decoded['data']?['backups'] ?? []);
-  }
-
-  Future<Uint8List?> downloadBackup(String filename) async {
-    final base  = await _baseUrl();
-    final hdrs  = await _headers();
-    final resp  = await _client
-        .get(Uri.parse('$base/backup/$filename'), headers: hdrs)
-        .timeout(const Duration(seconds: 60));
-    if (resp.statusCode == 200) return resp.bodyBytes;
-    return null;
-  }
-
-  // -------------------------------------------------------
   // HELPERS
   // -------------------------------------------------------
 
