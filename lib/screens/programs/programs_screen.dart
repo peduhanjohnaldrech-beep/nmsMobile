@@ -768,7 +768,7 @@ class _MnsTabState extends State<_MnsTab>
   late TabController _subTabs;
 
   int    _year    = DateTime.now().year;
-  String _round   = 'February';
+  String _round   = 'April';
   bool   _loading = false;
 
   List<dynamic> _vitAItems         = [];
@@ -883,8 +883,8 @@ class _MnsTabState extends State<_MnsTab>
           Expanded(child: _DropdownFilter<String>(
             hint: 'Round', value: _round,
             items: const [
-              DropdownMenuItem(value: 'February', child: Text('February')),
-              DropdownMenuItem(value: 'August',   child: Text('August')),
+              DropdownMenuItem(value: 'April',   child: Text('April')),
+              DropdownMenuItem(value: 'October', child: Text('October')),
             ],
             onChanged: (v) { if (v != null) setState(() => _round = v); _load(); },
           )),
@@ -1553,12 +1553,12 @@ class _MnsDefaulterTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Wrap(spacing: 6, runSpacing: 5, children: [
-                        if (missingFeb) _chip('Vita A Feb', true),
-                        if (missingAug) _chip('Vita A Aug', true),
+                        if (missingFeb) _chip('Vita A Apr', true),
+                        if (missingAug) _chip('Vita A Oct', true),
                         if (missingMnp) _chip('MNP', true),
                         if (missingLns) _chip('LNS-SQ', true),
-                        if (!missingFeb && _is1(r['elig_vita_feb'])) _chip('Vita A Feb', false),
-                        if (!missingAug && _is1(r['elig_vita_aug'])) _chip('Vita A Aug', false),
+                        if (!missingFeb && _is1(r['elig_vita_feb'])) _chip('Vita A Apr', false),
+                        if (!missingAug && _is1(r['elig_vita_aug'])) _chip('Vita A Oct', false),
                         if (!missingMnp && _is1(r['elig_mnp']))      _chip('MNP', false),
                         if (!missingLns && _is1(r['elig_lns']))       _chip('LNS-SQ', false),
                       ]),
