@@ -771,14 +771,19 @@ class _MnsTabState extends State<_MnsTab>
   String _round   = 'February';
   bool   _loading = false;
 
-  List<dynamic> _vitAItems  = [];
-  List<dynamic> _mnpItems   = [];
-  List<dynamic> _lnsSqItems = [];
+  List<dynamic> _vitAItems         = [];
+  List<dynamic> _vitAEligible      = [];
+  List<dynamic> _mnpItems          = [];
+  List<dynamic> _mnpNotYet         = [];
+  List<dynamic> _lnsSqItems        = [];
+  List<dynamic> _lnsNotYet         = [];
+  List<dynamic> _defaulterItems    = [];
+  List<dynamic> _completions       = [];
 
   @override
   void initState() {
     super.initState();
-    _subTabs = TabController(length: 3, vsync: this);
+    _subTabs = TabController(length: 4, vsync: this);
     _load();
   }
 
@@ -794,16 +799,43 @@ class _MnsTabState extends State<_MnsTab>
         _api.getPrograms(type: 'mns', year: _year, period: _round, barangay: brgy, tab: 'vitaminA'),
         _api.getPrograms(type: 'mns', year: _year, period: _round, barangay: brgy, tab: 'mnp'),
         _api.getPrograms(type: 'mns', year: _year, period: _round, barangay: brgy, tab: 'lnssq'),
+        _api.getPrograms(type: 'mns', year: _year, period: _round, barangay: brgy, tab: 'defaulter'),
+        _api.mnsDistributionStatus(year: _year, barangay: brgy),
       ]);
       if (mounted) {
         setState(() {
-        _vitAItems  = List.from(results[0]['data']?['records'] ?? []);
-        _mnpItems   = List.from(results[1]['data']?['records'] ?? []);
-        _lnsSqItems = List.from(results[2]['data']?['records'] ?? []);
-      });
+          _vitAItems      = List.from(results[0]['data']?['records']     ?? []);
+          _vitAEligible   = List.from(results[0]['data']?['eligible']    ?? []);
+          _mnpItems       = List.from(results[1]['data']?['records']     ?? []);
+          _mnpNotYet      = List.from(results[1]['data']?['not_yet']     ?? []);
+          _lnsSqItems     = List.from(results[2]['data']?['records']     ?? []);
+          _lnsNotYet      = List.from(results[2]['data']?['not_yet']     ?? []);
+          _defaulterItems = List.from(results[3]['data']?['defaulters']  ?? []);
+          _completions    = List.from(results[4]['data']?['completions'] ?? []);
+        });
       }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _markDistributionComplete(String supplement) async {
+    final user = context.read<AuthProvider>().user;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Mark Distribution Complete'),
+        content: Text('Mark ${supplement.toUpperCase()} distribution for ${user?.barangay ?? 'your barangay'} as complete for $_year?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final res = await _api.mnsDistributionComplete({'supplement': supplement, 'year': _year});
+    if (!mounted) return;
+    _snack(res['message'] ?? 'Done', res['success'] == true);
+    if (res['success'] == true) _load();
   }
 
   Future<void> _deleteVitA(int id) async {
@@ -823,10 +855,13 @@ class _MnsTabState extends State<_MnsTab>
   void _snack(String msg, bool ok) => ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(msg), backgroundColor: ok ? Colors.green : Colors.red, behavior: SnackBarBehavior.floating));
 
-  void _showRecordModal(String type) {
+  void _showRecordModal(String type, {Map<String, dynamic>? initialBeneficiary}) {
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (_) => _MnsRecordModal(type: type, year: _year, round: _round, onSaved: _load),
+      builder: (_) => _MnsRecordModal(
+        type: type, year: _year, round: _round, onSaved: _load,
+        initialBeneficiary: initialBeneficiary,
+      ),
     );
   }
 
@@ -863,10 +898,22 @@ class _MnsTabState extends State<_MnsTab>
           unselectedLabelColor: Colors.white54,
           indicatorColor: Colors.amber,
           indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'Vitamin A'),
-            Tab(text: 'MNP'),
-            Tab(text: 'LNS-SQ'),
+          tabs: [
+            const Tab(text: 'Vitamin A'),
+            const Tab(text: 'MNP'),
+            const Tab(text: 'LNS-SQ'),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Defaulters'),
+              if (_defaulterItems.isNotEmpty) ...[
+                const SizedBox(width: 5),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                  child: Text('${_defaulterItems.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ])),
           ],
         ),
       ),
@@ -877,34 +924,63 @@ class _MnsTabState extends State<_MnsTab>
                 controller: _subTabs,
                 children: [
                   _MnsSubTab(
-                    type: 'vitamina', items: _vitAItems, heroTag: 'fab_vita',
+                    type: 'vitamina', items: _vitAItems, notYetItems: _vitAEligible,
+                    heroTag: 'fab_vita',
                     emptyMsg: 'No Vitamin A records for $_round $_year',
                     icon: Icons.vaccines, color: Colors.orange,
                     subtitle: (r) => '${r['barangay'] ?? ''}  •  ${r['dosage_iu'] ?? ''} IU',
                     trailing: (r) => r['distribution_date'] ?? '',
                     onRecord: () => _showRecordModal('vitamina'),
+                    onRecordFor: (b) => _showRecordModal('vitamina', initialBeneficiary: Map<String, dynamic>.from(b)),
                     onRefresh: _load,
                     onDelete: _deleteVitA,
                   ),
                   _MnsSubTab(
-                    type: 'mnp', items: _mnpItems, heroTag: 'fab_mnp',
+                    type: 'mnp', items: _mnpItems, notYetItems: _mnpNotYet,
+                    heroTag: 'fab_mnp',
                     emptyMsg: 'No MNP records for $_year',
                     icon: Icons.medication_outlined, color: Colors.purple,
-                    subtitle: (r) => '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}',
+                    subtitle: (r) {
+                      final s = r['sachets_distributed'];
+                      return '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}'
+                          '${s != null ? '  •  $s sachets' : ''}';
+                    },
                     trailing: (r) => r['date_given'] ?? '',
                     onRecord: () => _showRecordModal('mnp'),
+                    onRecordFor: (b) => _showRecordModal('mnp', initialBeneficiary: Map<String, dynamic>.from(b)),
                     onRefresh: _load,
                     onComplete: (id) => _markComplete('mnp', id),
+                    completions: _completions,
+                    onDistributionComplete: () => _markDistributionComplete('mnp'),
                   ),
                   _MnsSubTab(
-                    type: 'lnssq', items: _lnsSqItems, heroTag: 'fab_lnssq',
+                    type: 'lnssq', items: _lnsSqItems, notYetItems: _lnsNotYet,
+                    heroTag: 'fab_lnssq',
                     emptyMsg: 'No LNS-SQ records for $_year',
                     icon: Icons.local_dining_outlined, color: Colors.teal,
-                    subtitle: (r) => '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}',
+                    subtitle: (r) {
+                      final s = r['sachets_distributed'];
+                      return '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}'
+                          '${s != null ? '  •  $s sachets' : ''}';
+                    },
                     trailing: (r) => r['date_given'] ?? '',
                     onRecord: () => _showRecordModal('lnssq'),
+                    onRecordFor: (b) => _showRecordModal('lnssq', initialBeneficiary: Map<String, dynamic>.from(b)),
                     onRefresh: _load,
                     onComplete: (id) => _markComplete('lnssq', id),
+                    completions: _completions,
+                    onDistributionComplete: () => _markDistributionComplete('lnssq'),
+                  ),
+                  _MnsDefaulterTab(
+                    items: _defaulterItems,
+                    onRefresh: _load,
+                    onRecord: (bene, type) => _showRecordModal(type, initialBeneficiary: bene),
+                    onReason: (id, supplement, reason) async {
+                      final res = await _api.mnsDefaulterReason({'beneficiary_id': id, 'supplement': supplement, 'reason': reason, 'year': _year});
+                      if (!mounted) return;
+                      _snack(res['message'] ?? 'Done', res['success'] == true);
+                      if (res['success'] == true) _load();
+                    },
                   ),
                 ],
               ),
@@ -914,11 +990,12 @@ class _MnsTabState extends State<_MnsTab>
 }
 
 // ─────────────────────────────────────────────────────────
-// MNS SUB-TAB
+// MNS SUB-TAB  (Not Yet Received + Records Given)
 // ─────────────────────────────────────────────────────────
 class _MnsSubTab extends StatelessWidget {
   final String                        type;
-  final List<dynamic>                 items;
+  final List<dynamic>                 items;         // records given
+  final List<dynamic>                 notYetItems;   // eligible, not yet received
   final String                        emptyMsg;
   final IconData                      icon;
   final Color                         color;
@@ -926,13 +1003,17 @@ class _MnsSubTab extends StatelessWidget {
   final String Function(dynamic)      trailing;
   final String                        heroTag;
   final VoidCallback                  onRecord;
+  final void Function(dynamic)?       onRecordFor;   // quick-record from not-yet list
   final Future<void> Function()       onRefresh;
   final Future<void> Function(int)?   onDelete;
   final Future<void> Function(int)?   onComplete;
+  final List<dynamic>                 completions;
+  final Future<void> Function()?      onDistributionComplete;
 
   const _MnsSubTab({
     required this.type,
     required this.items,
+    required this.notYetItems,
     required this.emptyMsg,
     required this.icon,
     required this.color,
@@ -941,121 +1022,191 @@ class _MnsSubTab extends StatelessWidget {
     required this.heroTag,
     required this.onRecord,
     required this.onRefresh,
+    this.onRecordFor,
     this.onDelete,
     this.onComplete,
+    this.completions = const [],
+    this.onDistributionComplete,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      if (items.isEmpty)
-        Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 56, color: const Color(0xFF1E3050)),
-          const SizedBox(height: 12),
-          Text(emptyMsg, style: const TextStyle(color: Color(0xFF90A4B8), fontSize: 14)),
-        ]))
-      else
-        RefreshIndicator(
-          onRefresh: onRefresh,
-          child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text('${items.length} records',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
-                ),
-              ]),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 6, 12, 90),
-                itemCount: items.length,
-                itemBuilder: (ctx, i) {
-                  final r    = items[i];
-                  final id   = r['id'] as int? ?? 0;
-                  final name = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
-                  final completed = (r['completed_routine'] == 1 || r['completed_routine'] == '1');
+    final total = notYetItems.length + items.length;
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-                      child: Row(children: [
-                        CircleAvatar(
-                          backgroundColor: color.withValues(alpha: 0.15),
-                          radius: 18,
-                          child: Icon(icon, color: color, size: 16),
+    return Stack(children: [
+      RefreshIndicator(
+        onRefresh: onRefresh,
+        child: total == 0
+            ? ListView(children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.55,
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(icon, size: 56, color: const Color(0xFF1E3050)),
+                    const SizedBox(height: 12),
+                    Text(emptyMsg, style: const TextStyle(color: Color(0xFF90A4B8), fontSize: 14)),
+                  ]),
+                ),
+              ])
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 90),
+                children: [
+                  // ── Distribution complete banner ──────────────────
+                  Builder(builder: (_) {
+                    final done = completions.any((c) => c['supplement'] == type);
+                    if (done) {
+                      final c = completions.firstWhere((c) => c['supplement'] == type);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.green.shade200)),
+                        child: Row(children: [
+                          const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text('Distribution marked complete by ${c['full_name'] ?? ''}', style: const TextStyle(color: Colors.green, fontSize: 13))),
+                        ]),
+                      );
+                    }
+                    if (onDistributionComplete != null && (type == 'mnp' || type == 'lnssq')) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: OutlinedButton.icon(
+                          onPressed: onDistributionComplete,
+                          icon: const Icon(Icons.flag_rounded, size: 16),
+                          label: Text('Mark ${type.toUpperCase()} Distribution Complete'),
+                          style: OutlinedButton.styleFrom(foregroundColor: Colors.green, side: const BorderSide(color: Colors.green)),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          Text(subtitle(r), style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
-                          Text(trailing(r), style: const TextStyle(fontSize: 11, color: Color(0xFF607896))),
-                        ])),
-                        // Actions
-                        if (type == 'vitamina' && onDelete != null)
-                          IconButton(
-                            icon: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red.shade400),
-                            tooltip: 'Delete',
-                            onPressed: () async {
-                              final ok = await showDialog<bool>(
-                                context: ctx,
-                                builder: (c) => AlertDialog(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  title: const Text('Delete Record'),
-                                  content: Text('Delete Vitamin A record for $name?'),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                                      onPressed: () => Navigator.pop(c, true),
-                                      child: const Text('Delete'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (ok == true) onDelete!(id);
-                            },
-                          )
-                        else if (type != 'vitamina' && onComplete != null)
-                          completed
-                              ? Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.shade50,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.green.shade300),
-                                  ),
-                                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                    Icon(Icons.check_rounded, size: 12, color: Colors.green.shade700),
-                                    const SizedBox(width: 3),
-                                    Text('Done', style: TextStyle(fontSize: 11, color: Colors.green.shade700, fontWeight: FontWeight.w700)),
-                                  ]),
-                                )
-                              : TextButton(
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
+                  // ── Not Yet Received section ──────────────────────
+                  if (notYetItems.isNotEmpty) ...[
+                    _sectionHeader(
+                      '${notYetItems.length} Not Yet Received',
+                      Colors.orange,
+                      Icons.pending_actions_rounded,
+                    ),
+                    const SizedBox(height: 6),
+                    ...notYetItems.map((r) {
+                      final name = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
+                      final age  = r['age_months'] ?? '';
+                      final brgy = r['barangay'] ?? '';
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.fromLTRB(14, 4, 8, 4),
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.orange.withValues(alpha: 0.12),
+                            radius: 18,
+                            child: const Icon(Icons.person_outlined, color: Colors.orange, size: 18),
+                          ),
+                          title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          subtitle: Text('$brgy  •  $age mo',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
+                          trailing: onRecordFor != null
+                              ? TextButton(
                                   style: TextButton.styleFrom(
                                     foregroundColor: color,
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
                                     minimumSize: const Size(0, 32),
                                   ),
-                                  onPressed: () => onComplete!(id),
-                                  child: const Text('Complete', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                ),
-                      ]),
+                                  onPressed: () => onRecordFor!(r),
+                                  child: const Text('Record', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                )
+                              : null,
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── Records Given section ─────────────────────────
+                  if (items.isNotEmpty) ...[
+                    _sectionHeader(
+                      '${items.length} Records Given',
+                      color,
+                      Icons.check_circle_outline_rounded,
                     ),
-                  );
-                },
+                    const SizedBox(height: 6),
+                    ...items.map((r) {
+                      final id        = r['id'] as int? ?? 0;
+                      final name      = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
+                      final completed = (r['completed_routine'] == 1 || r['completed_routine'] == '1');
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+                          child: Row(children: [
+                            CircleAvatar(
+                              backgroundColor: color.withValues(alpha: 0.15),
+                              radius: 18,
+                              child: Icon(icon, color: color, size: 16),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              Text(subtitle(r), style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
+                              Text(trailing(r), style: const TextStyle(fontSize: 11, color: Color(0xFF607896))),
+                            ])),
+                            if (type == 'vitamina' && onDelete != null)
+                              IconButton(
+                                icon: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red.shade400),
+                                tooltip: 'Delete',
+                                onPressed: () async {
+                                  final ok = await showDialog<bool>(
+                                    context: context,
+                                    builder: (c) => AlertDialog(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      title: const Text('Delete Record'),
+                                      content: Text('Delete Vitamin A record for $name?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                          onPressed: () => Navigator.pop(c, true),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (ok == true) onDelete!(id);
+                                },
+                              )
+                            else if (type != 'vitamina' && onComplete != null)
+                              completed
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                                      ),
+                                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                        const Icon(Icons.check_rounded, size: 12, color: Colors.green),
+                                        const SizedBox(width: 3),
+                                        const Text('Done', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w700)),
+                                      ]),
+                                    )
+                                  : TextButton(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: color,
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        minimumSize: const Size(0, 32),
+                                      ),
+                                      onPressed: () => onComplete!(id),
+                                      child: const Text('Complete', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                    ),
+                          ]),
+                        ),
+                      );
+                    }),
+                  ],
+                ],
               ),
-            ),
-          ]),
-        ),
+      ),
       Positioned(
         right: 16, bottom: 16,
         child: FloatingActionButton.extended(
@@ -1068,18 +1219,34 @@ class _MnsSubTab extends StatelessWidget {
       ),
     ]);
   }
+
+  Widget _sectionHeader(String title, Color c, IconData ico) => Padding(
+    padding: const EdgeInsets.only(bottom: 2),
+    child: Row(children: [
+      Icon(ico, size: 14, color: c),
+      const SizedBox(width: 6),
+      Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: c)),
+    ]),
+  );
 }
 
 // ─────────────────────────────────────────────────────────
 // MNS RECORD MODAL (unchanged logic, cleaner UI)
 // ─────────────────────────────────────────────────────────
 class _MnsRecordModal extends StatefulWidget {
-  final String type;
-  final int    year;
-  final String round;
-  final VoidCallback onSaved;
+  final String                   type;
+  final int                      year;
+  final String                   round;
+  final VoidCallback             onSaved;
+  final Map<String, dynamic>?    initialBeneficiary;
 
-  const _MnsRecordModal({required this.type, required this.year, required this.round, required this.onSaved});
+  const _MnsRecordModal({
+    required this.type,
+    required this.year,
+    required this.round,
+    required this.onSaved,
+    this.initialBeneficiary,
+  });
 
   @override State<_MnsRecordModal> createState() => _MnsRecordModalState();
 }
@@ -1090,6 +1257,7 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
   final _searchCtrl = TextEditingController();
   final _dateCtrl   = TextEditingController(text: DateTime.now().toIso8601String().substring(0, 10));
   final _notesCtrl  = TextEditingController();
+  final _sachetsCtrl = TextEditingController();
 
   Map<String, dynamic>?      _selected;
   List<Map<String, dynamic>> _results = [];
@@ -1102,7 +1270,24 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
   bool   _completed    = false;
 
   @override
-  void dispose() { _searchCtrl.dispose(); _dateCtrl.dispose(); _notesCtrl.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    final b = widget.initialBeneficiary;
+    if (b != null) {
+      _selected = b;
+      _searchCtrl.text = '${b['last_name'] ?? ''}, ${b['first_name'] ?? ''}';
+      if (b['date_of_birth'] != null) {
+        final dob = DateTime.tryParse(b['date_of_birth'].toString());
+        if (dob != null) {
+          final months = (DateTime.now().year - dob.year) * 12 + (DateTime.now().month - dob.month);
+          _ageGroup = months <= 11 ? '6-11 months' : '12-23 months';
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() { _searchCtrl.dispose(); _dateCtrl.dispose(); _notesCtrl.dispose(); _sachetsCtrl.dispose(); super.dispose(); }
 
   Future<void> _search(String q) async {
     if (q.length < 2) { setState(() => _results = []); return; }
@@ -1123,6 +1308,14 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
 
   Future<void> _save() async {
     if (_selected == null) { _snack('Select a beneficiary first', false); return; }
+    if (widget.type != 'vitamina') {
+      final given  = DateTime.tryParse(_dateCtrl.text);
+      final cutoff = DateTime.now().subtract(const Duration(days: 30));
+      if (given != null && given.isBefore(cutoff)) {
+        _snack('Date is too far in the past. Maximum 30 days back allowed.', false);
+        return;
+      }
+    }
     setState(() => _saving = true);
     final Future<Map<String, dynamic>> call;
     if (widget.type == 'vitamina') {
@@ -1135,13 +1328,17 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
       call = _api.recordMnp({
         'beneficiary_id': _selected!['id'], 'date_given': _dateCtrl.text,
         'year': widget.year, 'age_group': _ageGroup,
-        'completed_routine': _completed ? 1 : 0, 'notes': _notesCtrl.text,
+        'completed_routine': _completed ? 1 : 0,
+        'sachets_distributed': _sachetsCtrl.text.isEmpty ? null : int.tryParse(_sachetsCtrl.text),
+        'notes': _notesCtrl.text,
       });
     } else {
       call = _api.recordLnsSq({
         'beneficiary_id': _selected!['id'], 'date_given': _dateCtrl.text,
         'year': widget.year, 'age_group': _ageGroup,
-        'completed_routine': _completed ? 1 : 0, 'notes': _notesCtrl.text,
+        'completed_routine': _completed ? 1 : 0,
+        'sachets_distributed': _sachetsCtrl.text.isEmpty ? null : int.tryParse(_sachetsCtrl.text),
+        'notes': _notesCtrl.text,
       });
     }
     final res = await call;
@@ -1198,6 +1395,17 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
           ],
           onChanged: (v) => setState(() => _ageGroup = v!),
         ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _sachetsCtrl,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'Sachets Distributed (optional)',
+            border: const OutlineInputBorder(),
+            hintText: widget.type == 'mnp' ? 'Total: 60 sachets' : 'e.g. 15',
+            prefixIcon: const Icon(Icons.inventory_2_outlined, size: 18),
+          ),
+        ),
         const SizedBox(height: 8),
         SwitchListTile(
           value: _completed, onChanged: (v) => setState(() => _completed = v),
@@ -1208,6 +1416,274 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
             decoration: const InputDecoration(labelText: 'Notes (optional)', border: OutlineInputBorder()), maxLines: 2),
       ],
     ],
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// MNS DEFAULTER TAB
+// ─────────────────────────────────────────────────────────
+class _MnsDefaulterTab extends StatelessWidget {
+  final List<dynamic>                                   items;
+  final Future<void> Function()                         onRefresh;
+  final void Function(Map<String, dynamic>, String)     onRecord;
+  final Future<void> Function(int, String, String)?     onReason;
+
+  const _MnsDefaulterTab({
+    required this.items,
+    required this.onRefresh,
+    required this.onRecord,
+    this.onReason,
+  });
+
+  bool _is1(dynamic v) => v == 1 || v == '1' || v == true;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: const Icon(Icons.check_rounded, color: Colors.green, size: 36),
+        ),
+        const SizedBox(height: 16),
+        const Text('All covered!',
+            style: TextStyle(color: Colors.green, fontSize: 17, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        const Text('No children missing supplements',
+            style: TextStyle(color: Color(0xFF90A4B8), fontSize: 13)),
+      ]));
+    }
+
+    return Column(children: [
+      Container(
+        color: const Color(0xFF3E1200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: Row(children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            '${items.length} ${items.length == 1 ? 'child needs' : 'children need'} follow-up',
+            style: const TextStyle(color: Colors.orange, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const Spacer(),
+          const Text('Tap a card to record', style: TextStyle(color: Color(0xFF90A4B8), fontSize: 11)),
+        ]),
+      ),
+      Expanded(
+        child: RefreshIndicator(
+          onRefresh: onRefresh,
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+            itemCount: items.length,
+            itemBuilder: (ctx, i) {
+              final r         = items[i];
+              final name      = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
+              final age       = r['age_months'] ?? 0;
+              final barangay  = r['barangay'] ?? '';
+              final purok     = (r['purok_zone'] ?? '').toString();
+
+              final missingFeb = _is1(r['elig_vita_feb']) && !_is1(r['got_vita_feb']);
+              final missingAug = _is1(r['elig_vita_aug']) && !_is1(r['got_vita_aug']);
+              final missingMnp = _is1(r['elig_mnp'])      && !_is1(r['got_mnp']);
+              final missingLns = _is1(r['elig_lns'])      && !_is1(r['got_lns']);
+
+              final missingTypes = <String>[
+                if (missingFeb || missingAug) 'vitamina',
+                if (missingMnp) 'mnp',
+                if (missingLns) 'lnssq',
+              ];
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: missingTypes.isEmpty ? null : () {
+                    if (missingTypes.length == 1) {
+                      onRecord(Map<String, dynamic>.from(r), missingTypes.first);
+                    } else {
+                      showDialog(
+                        context: ctx,
+                        builder: (c) => SimpleDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Text('Record Supplement', style: TextStyle(fontSize: 15)),
+                            Text(name, style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8), fontWeight: FontWeight.normal)),
+                          ]),
+                          children: missingTypes.map((t) {
+                            final (icon, label, color) = switch (t) {
+                              'vitamina' => (Icons.vaccines_rounded,      'Vitamin A', Colors.orange),
+                              'mnp'      => (Icons.medication_outlined,   'MNP',       Colors.purple),
+                              _          => (Icons.local_dining_outlined, 'LNS-SQ',    Colors.teal),
+                            };
+                            return SimpleDialogOption(
+                              onPressed: () { Navigator.pop(c); onRecord(Map<String, dynamic>.from(r), t); },
+                              child: Row(children: [
+                                Icon(icon, color: color, size: 20),
+                                const SizedBox(width: 10),
+                                Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+                              ]),
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Expanded(child: Text(name,
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E3050),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('$age mo',
+                              style: const TextStyle(color: Color(0xFF90A4B8), fontSize: 11)),
+                        ),
+                      ]),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$barangay${purok.isNotEmpty ? '  •  Purok $purok' : ''}',
+                        style: const TextStyle(color: Color(0xFF607896), fontSize: 12),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(spacing: 6, runSpacing: 5, children: [
+                        if (missingFeb) _chip('Vita A Feb', true),
+                        if (missingAug) _chip('Vita A Aug', true),
+                        if (missingMnp) _chip('MNP', true),
+                        if (missingLns) _chip('LNS-SQ', true),
+                        if (!missingFeb && _is1(r['elig_vita_feb'])) _chip('Vita A Feb', false),
+                        if (!missingAug && _is1(r['elig_vita_aug'])) _chip('Vita A Aug', false),
+                        if (!missingMnp && _is1(r['elig_mnp']))      _chip('MNP', false),
+                        if (!missingLns && _is1(r['elig_lns']))       _chip('LNS-SQ', false),
+                      ]),
+                      // Reason display / entry
+                      Builder(builder: (_) {
+                        final reasons = r['reasons'];
+                        final firstKey = missingFeb ? 'vita_feb' : missingAug ? 'vita_aug' : missingMnp ? 'mnp' : missingLns ? 'lns' : null;
+                        final existingReason = firstKey != null && reasons is Map ? reasons[firstKey]?.toString() ?? '' : '';
+                        if (existingReason.isNotEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Row(children: [
+                              const Icon(Icons.note_outlined, size: 13, color: Color(0xFF607896)),
+                              const SizedBox(width: 4),
+                              Expanded(child: Text(existingReason, style: const TextStyle(color: Color(0xFF607896), fontSize: 12, fontStyle: FontStyle.italic))),
+                              if (onReason != null && firstKey != null)
+                                GestureDetector(
+                                  onTap: () => _showReasonDialog(ctx, r['id'], firstKey, existingReason),
+                                  child: const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF607896)),
+                                ),
+                            ]),
+                          );
+                        }
+                        if (onReason != null && firstKey != null) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: GestureDetector(
+                              onTap: () => _showReasonDialog(ctx, r['id'], firstKey, ''),
+                              child: const Row(children: [
+                                Icon(Icons.add_comment_outlined, size: 13, color: Color(0xFF607896)),
+                                SizedBox(width: 4),
+                                Text('Add reason', style: TextStyle(color: Color(0xFF607896), fontSize: 12)),
+                              ]),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }),
+                      if (missingTypes.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1565C0).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFF1565C0).withValues(alpha: 0.4)),
+                            ),
+                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.add_rounded, size: 14, color: Color(0xFF42A5F5)),
+                              SizedBox(width: 4),
+                              Text('Record', style: TextStyle(color: Color(0xFF42A5F5), fontSize: 12, fontWeight: FontWeight.w600)),
+                            ]),
+                          ),
+                        ),
+                      ],
+                    ]),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  void _showReasonDialog(BuildContext context, int beneficiaryId, String supplement, String current) {
+    final options = ['Child was sick','Mother refused','Child moved/transferred','Not found at home','Will follow up','Other'];
+    String? selected = options.contains(current) ? current : null;
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, setState) => AlertDialog(
+        title: const Text('Note Reason', style: TextStyle(fontSize: 15)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: options.map((o) => RadioListTile<String>(
+            dense: true,
+            value: o, groupValue: selected,
+            title: Text(o, style: const TextStyle(fontSize: 13)),
+            onChanged: (v) => setState(() => selected = v),
+          )).toList(),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: selected == null ? null : () {
+              Navigator.pop(ctx);
+              onReason?.call(beneficiaryId, supplement, selected!);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      )),
+    );
+  }
+
+  Widget _chip(String label, bool missing) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: missing
+          ? Colors.red.withValues(alpha: 0.15)
+          : Colors.green.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(
+        color: missing
+            ? Colors.red.withValues(alpha: 0.5)
+            : Colors.green.withValues(alpha: 0.4),
+      ),
+    ),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      if (!missing) ...[
+        const Icon(Icons.check_rounded, size: 10, color: Colors.green),
+        const SizedBox(width: 3),
+      ],
+      Text(
+        label,
+        style: TextStyle(
+          color: missing ? Colors.red : Colors.green,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ]),
   );
 }
 

@@ -256,6 +256,19 @@ class ApiService {
     return _decode(res);
   }
 
+  Future<Map<String, dynamic>> updateAssessment(
+      int id, Map<String, dynamic> data) async {
+    final base = await _baseUrl();
+    final res = await http
+        .put(
+          Uri.parse('$base/assessments/$id'),
+          headers: await _headers(),
+          body: jsonEncode(data),
+        )
+        .timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
   // -------------------------------------------------------
   // SYNC
   // -------------------------------------------------------
@@ -567,6 +580,27 @@ class ApiService {
     return _decode(res);
   }
 
+  Future<Map<String, dynamic>> mnsDefaulterReason(Map<String, dynamic> data) async {
+    final base = await _baseUrl();
+    final res = await _client.post(Uri.parse('$base/programs/mns/defaulter/reason'), headers: await _headers(), body: jsonEncode(data)).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> mnsDistributionComplete(Map<String, dynamic> data) async {
+    final base = await _baseUrl();
+    final res = await _client.post(Uri.parse('$base/programs/mns/distribution-complete'), headers: await _headers(), body: jsonEncode(data)).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> mnsDistributionStatus({int? year, String? barangay}) async {
+    final base   = await _baseUrl();
+    final params = <String, String>{};
+    if (year != null)     params['year']     = year.toString();
+    if (barangay != null) params['barangay'] = barangay;
+    final res = await _client.get(Uri.parse('$base/programs/mns/distribution-status').replace(queryParameters: params), headers: await _headers()).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
   Future<Map<String, dynamic>> getGenericProgram(String code, {int? year, String? status, String? barangay}) async {
     final base = await _baseUrl();
     final params = <String, String>{};
@@ -723,6 +757,13 @@ class ApiService {
     final base = await _baseUrl();
     final q = status != null ? '?status=$status' : '';
     final res = await _client.get(Uri.parse('$base/validation/my-submissions$q'), headers: await _headers()).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> getMyDspMonitoring({String? status}) async {
+    final base = await _baseUrl();
+    final q = status != null ? '?status=$status' : '';
+    final res = await _client.get(Uri.parse('$base/validation/dsp-monitoring/my-submissions$q'), headers: await _headers()).timeout(const Duration(seconds: 15));
     return _decode(res);
   }
 
