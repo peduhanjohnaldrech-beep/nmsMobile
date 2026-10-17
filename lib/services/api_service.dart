@@ -124,6 +124,7 @@ class ApiService {
     int perPage = 30,
     String? updatedSince,
     bool validatedOnly = false,
+    bool activeOnly = false,
     String? excludePeriod,
     int? excludeYear,
   }) async {
@@ -138,6 +139,7 @@ class ApiService {
     if (source != null)       params['source']         = source;
     if (updatedSince != null) params['updated_since']  = updatedSince;
     if (validatedOnly)        params['validated_only'] = '1';
+    if (activeOnly)           params['active_only']    = '1';
     if (excludePeriod != null) params['exclude_period'] = excludePeriod;
     if (excludeYear != null)   params['exclude_year']   = excludeYear.toString();
 

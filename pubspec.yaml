@@ -15,8 +15,8 @@ dependencies:
   # HTTP & API
   http: ^1.2.0
 
-  # Local database (offline)
-  sqflite: ^2.3.2
+  # Local database (offline, encrypted with SQLCipher)
+  sqflite_sqlcipher: ^3.3.0
   path: ^1.9.0
 
   # Secure storage (for token)

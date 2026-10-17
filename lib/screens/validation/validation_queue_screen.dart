@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/beneficiary_model.dart';
 import '../../services/api_service.dart';
 import '../beneficiaries/beneficiary_detail_screen.dart';
+import '../beneficiaries/submit_to_admin_screen.dart';
 
 class ValidationQueueScreen extends StatefulWidget {
   const ValidationQueueScreen({super.key});
@@ -28,6 +29,8 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
   final Set<int> _validatingAssessments   = {};
   final Set<int> _validatingBeneficiaries = {};
   final Set<int> _validatingDsp           = {};
+
+  int _readyToSubmitCount = 0;
 
   @override
   void initState() {
@@ -65,6 +68,16 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
     }
+    _loadReadyToSubmitCount();
+  }
+
+  Future<void> _loadReadyToSubmitCount() async {
+    try {
+      final res = await _api.getReadyToSubmit();
+      if (!mounted) return;
+      final list = res['data']?['beneficiaries'] as List? ?? [];
+      setState(() => _readyToSubmitCount = list.length);
+    } catch (_) {}
   }
 
   // ── INDIVIDUAL ACTIONS ──────────────────────────────────
@@ -394,11 +407,11 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
   Widget _statusBadge(String? status) {
     if (status == null || status.isEmpty) return const SizedBox.shrink();
     final Map<String, List<Color>> map = {
-      'SUW':    [const Color(0xFFFFEBEE), const Color(0xFFB71C1C)],
-      'UW':     [const Color(0xFFFFF3E0), const Color(0xFFE65100)],
-      'Normal': [const Color(0xFFE8F5E9), const Color(0xFF1B5E20)],
-      'OW':     [const Color(0xFFFFFDE7), const Color(0xFFF57F17)],
-      'OB':     [const Color(0xFFF3E5F5), const Color(0xFF4A148C)],
+      'SUW':    [const Color(0x33FF4757), const Color(0xFFFF6B7A)],
+      'UW':     [const Color(0x33FF9100), const Color(0xFFFFB74D)],
+      'Normal': [const Color(0x334CAF50), const Color(0xFF69F0AE)],
+      'OW':     [const Color(0x33FFD740), const Color(0xFFFFD740)],
+      'OB':     [const Color(0x337B61FF), const Color(0xFFCE93D8)],
     };
     final colors = map[status] ?? [const Color(0xFF0F1E35), const Color(0xFFCDD5DE)];
     return Container(
@@ -495,6 +508,19 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
           ],
         ),
       ),
+      floatingActionButton: !_loading && _tabs.index == 1 && _readyToSubmitCount > 0
+          ? FloatingActionButton.extended(
+              heroTag: 'fab_submit_admin',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubmitToAdminScreen()),
+              ).then((_) => _loadReadyToSubmitCount()),
+              icon: const Icon(Icons.send_rounded),
+              label: Text('Submit to Admin ($_readyToSubmitCount)'),
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            )
+          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -549,7 +575,7 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
 
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          color: isSelected ? Colors.green.shade50 : null,
+          color: isSelected ? const Color(0xFF0D2018) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: isSelected ? BorderSide(color: Colors.green.shade400, width: 1.5) : BorderSide.none,
@@ -689,7 +715,7 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
 
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          color: isSelected ? Colors.green.shade50 : null,
+          color: isSelected ? const Color(0xFF0D2018) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: isSelected ? BorderSide(color: Colors.green.shade400, width: 1.5) : BorderSide.none,
@@ -810,8 +836,8 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
 
   Widget _pendingBadge() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(12)),
-    child: const Text('Pending', style: TextStyle(color: Color(0xFFE65100), fontSize: 11, fontWeight: FontWeight.bold)),
+    decoration: BoxDecoration(color: const Color(0x33FF9100), borderRadius: BorderRadius.circular(12)),
+    child: const Text('Pending', style: TextStyle(color: Color(0xFFFFB74D), fontSize: 11, fontWeight: FontWeight.bold)),
   );
 
   Widget _buildDspMonitoringList() {
@@ -837,16 +863,16 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
         final date       = (d['monitoring_date'] ?? '').toString();
         final dateShort  = date.length >= 10 ? date.substring(0, 10) : date;
 
-        Color statusBg   = Colors.grey.shade100;
-        Color statusFg   = Colors.grey.shade700;
+        Color statusBg   = const Color(0xFF1A2A3A);
+        Color statusFg   = const Color(0xFFB0BEC5);
         final ns = d['nutritional_status']?.toString() ?? '';
-        if (ns == 'SUW')    { statusBg = const Color(0xFFFFEBEE); statusFg = const Color(0xFFB71C1C); }
-        else if (ns == 'UW'){ statusBg = const Color(0xFFFFF3E0); statusFg = const Color(0xFFE65100); }
-        else if (ns == 'Normal') { statusBg = const Color(0xFFE8F5E9); statusFg = const Color(0xFF1B5E20); }
+        if (ns == 'SUW')    { statusBg = const Color(0x33FF4757); statusFg = const Color(0xFFFF6B7A); }
+        else if (ns == 'UW'){ statusBg = const Color(0x33FF9100); statusFg = const Color(0xFFFFB74D); }
+        else if (ns == 'Normal') { statusBg = const Color(0x334CAF50); statusFg = const Color(0xFF69F0AE); }
 
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          color: isSelected ? Colors.green.shade50 : null,
+          color: isSelected ? const Color(0xFF0D2018) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: isSelected ? BorderSide(color: Colors.green.shade400, width: 1.5) : BorderSide.none,

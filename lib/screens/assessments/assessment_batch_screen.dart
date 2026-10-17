@@ -60,6 +60,7 @@ class _State extends State<AssessmentBatchScreen> {
         barangay: _barangay,
         perPage: 500,
         validatedOnly: true,
+        activeOnly: true,
         excludePeriod: _period,
         excludeYear: _year,
       );
@@ -200,38 +201,48 @@ class _State extends State<AssessmentBatchScreen> {
               : Column(children: [
                   // Period selector bar
                   Container(
-                    color: const Color(0xFFE3F2FD),
+                    color: const Color(0xFF1565C0),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(children: [
-                      const Icon(Icons.calendar_month, size: 16, color: Color(0xFF1565C0)),
+                      const Icon(Icons.calendar_month, size: 16, color: Colors.white70),
                       const SizedBox(width: 8),
-                      const Text('Period: ', style: TextStyle(fontWeight: FontWeight.w600)),
-                      DropdownButton<String>(
-                        value: _period,
-                        underline: const SizedBox(),
-                        isDense: true,
-                        items: ['January', 'July'].map((p) =>
-                            DropdownMenuItem(value: p, child: Text(p))).toList(),
-                        onChanged: (v) {
-                          setState(() => _period = v!);
-                          _loadBeneficiaries();
-                        },
+                      const Text('Period: ', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+                      Theme(
+                        data: ThemeData(canvasColor: const Color(0xFF1565C0)),
+                        child: DropdownButton<String>(
+                          value: _period,
+                          underline: const SizedBox(),
+                          isDense: true,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          iconEnabledColor: Colors.white70,
+                          items: ['January', 'July'].map((p) =>
+                              DropdownMenuItem(value: p, child: Text(p))).toList(),
+                          onChanged: (v) {
+                            setState(() => _period = v!);
+                            _loadBeneficiaries();
+                          },
+                        ),
                       ),
                       const SizedBox(width: 16),
-                      DropdownButton<int>(
-                        value: _year,
-                        underline: const SizedBox(),
-                        isDense: true,
-                        items: List.generate(4, (i) => DateTime.now().year - i).map((y) =>
-                            DropdownMenuItem(value: y, child: Text('$y'))).toList(),
-                        onChanged: (v) {
-                          setState(() => _year = v!);
-                          _loadBeneficiaries();
-                        },
+                      Theme(
+                        data: ThemeData(canvasColor: const Color(0xFF1565C0)),
+                        child: DropdownButton<int>(
+                          value: _year,
+                          underline: const SizedBox(),
+                          isDense: true,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          iconEnabledColor: Colors.white70,
+                          items: List.generate(4, (i) => DateTime.now().year - i).map((y) =>
+                              DropdownMenuItem(value: y, child: Text('$y'))).toList(),
+                          onChanged: (v) {
+                            setState(() => _year = v!);
+                            _loadBeneficiaries();
+                          },
+                        ),
                       ),
                       const Spacer(),
                       Text('${_beneficiaries.length} children',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                          style: const TextStyle(color: Colors.white70, fontSize: 12)),
                     ]),
                   ),
                   // Progress bar

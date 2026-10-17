@@ -108,7 +108,7 @@ class NmsApp extends StatelessWidget {
           filled: true,
           fillColor: const Color(0xFF0D1B2E),
           labelStyle: const TextStyle(color: Color(0xFF7B8FA6)),
-          hintStyle: const TextStyle(color: Color(0xFF4A6070)),
+          hintStyle: const TextStyle(color: Color(0xFF6B8FA6)),
           prefixIconColor: const Color(0xFF7B8FA6),
           suffixIconColor: const Color(0xFF7B8FA6),
         ),

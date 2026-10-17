@@ -1058,11 +1058,11 @@ class _MnsSubTab extends StatelessWidget {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.green.shade200)),
+                        decoration: BoxDecoration(color: const Color(0x334CAF50), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x7F4CAF50))),
                         child: Row(children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF69F0AE), size: 20),
                           const SizedBox(width: 8),
-                          Expanded(child: Text('Distribution marked complete by ${c['full_name'] ?? ''}', style: const TextStyle(color: Colors.green, fontSize: 13))),
+                          Expanded(child: Text('Distribution marked complete by ${c['full_name'] ?? ''}', style: const TextStyle(color: Color(0xFF69F0AE), fontSize: 13))),
                         ]),
                       );
                     }
@@ -2059,12 +2059,12 @@ class _BeneficiarySearch extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            border: Border.all(color: Colors.green.shade200),
+            color: const Color(0x334CAF50),
+            border: Border.all(color: const Color(0x7F4CAF50)),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(children: [
-            Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 16),
+            const Icon(Icons.check_circle_rounded, color: Color(0xFF69F0AE), size: 16),
             const SizedBox(width: 8),
             Expanded(child: Text(
               '${selected!['last_name']}, ${selected!['first_name']}  •  ${selected!['barangay'] ?? ''}',

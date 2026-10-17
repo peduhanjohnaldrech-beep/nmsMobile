@@ -9,7 +9,6 @@ import '../../services/sync_service.dart';
 import '../../widgets/status_badge.dart';
 import '../assessments/assessment_form_screen.dart';
 import 'beneficiary_detail_screen.dart';
-import 'submit_to_admin_screen.dart';
 
 class BeneficiaryListScreen extends StatefulWidget {
   const BeneficiaryListScreen({super.key});
@@ -34,7 +33,6 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
   int     _page         = 1;
   bool    _hasMore      = true;
   bool    _loadingMore  = false;
-  int     _readyToSubmitCount = 0;
   bool    _showAgedOut  = true;
 
   static const _statusFilters = ['All', 'SUW', 'UW', 'Normal', 'OW', 'OB'];
@@ -55,20 +53,6 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
       await _sync.syncFull(barangay: brgy);
     }
     _load();
-    _loadReadyToSubmitCount();
-  }
-
-  Future<void> _loadReadyToSubmitCount() async {
-    final role = context.read<AuthProvider>().user?.role ?? '';
-    if (role != 'bns') return;
-    try {
-      final res = await _api.getReadyToSubmit();
-      if (!mounted) return;
-      if (res['success'] == true) {
-        final list = res['data']?['beneficiaries'] as List? ?? [];
-        setState(() => _readyToSubmitCount = list.length);
-      }
-    } catch (_) {}
   }
 
   Future<void> _loadPuroks() async {
@@ -200,43 +184,12 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
           ),
         ],
       ),
-      floatingActionButton: Builder(builder: (ctx) {
-        final role = ctx.read<AuthProvider>().user?.role ?? '';
-        if (role == 'bns') {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              FloatingActionButton.extended(
-                heroTag: 'fab_submit',
-                onPressed: _readyToSubmitCount == 0 ? null : () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SubmitToAdminScreen()),
-                ).then((_) { _load(reset: true); _loadReadyToSubmitCount(); }),
-                icon:            const Icon(Icons.send_rounded),
-                label:           Text(_readyToSubmitCount > 0
-                    ? 'Submit to Admin ($_readyToSubmitCount)'
-                    : 'Submit to Admin'),
-                backgroundColor: _readyToSubmitCount == 0 ? Colors.grey.shade700 : Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              const SizedBox(height: 12),
-              FloatingActionButton.extended(
-                heroTag: 'fab_add',
-                onPressed: () => _openCreateForm(context),
-                icon:  const Icon(Icons.person_add_rounded),
-                label: const Text('Add Beneficiary'),
-              ),
-            ],
-          );
-        }
-        return FloatingActionButton.extended(
-          heroTag: 'fab_add',
-          onPressed: () => _openCreateForm(context),
-          icon:  const Icon(Icons.person_add_rounded),
-          label: const Text('Add Beneficiary'),
-        );
-      }),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_add',
+        onPressed: () => _openCreateForm(context),
+        icon:  const Icon(Icons.person_add_rounded),
+        label: const Text('Add Beneficiary'),
+      ),
       body: Column(
         children: [
           // Search bar
@@ -422,7 +375,7 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.people_outline_rounded, size: 64, color: Color(0xFF2A4060)),
+          const Icon(Icons.people_outline_rounded, size: 64, color: Color(0xFF4A7090)),
           const SizedBox(height: 16),
           Text(
             _search.isNotEmpty
@@ -434,7 +387,7 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
           if (_search.isEmpty)
             const Text(
               'Tap + to add your first beneficiary',
-              style: TextStyle(color: Color(0xFF616161), fontSize: 13),
+              style: TextStyle(color: Color(0xFF8AAFC4), fontSize: 13),
             ),
         ],
       ),
@@ -457,7 +410,18 @@ class _BeneficiaryCard extends StatelessWidget {
     final b = beneficiary;
     final isMale = b.sex == 'Male';
 
-    return Card(
+    final statusLabel = b.isPendingValidation
+        ? 'Pending validation'
+        : b.isRejected
+            ? 'Registration rejected'
+            : b.latestStatus != null
+                ? 'Status: ${b.latestStatus}'
+                : 'No assessment yet';
+
+    return Semantics(
+      label: '${b.displayName}, ${b.sex}, ${b.barangay}${b.purokZone != null ? ", ${b.purokZone}" : ""}, $statusLabel',
+      button: true,
+      child: Card(
       margin:      const EdgeInsets.only(bottom: 8),
       elevation:   1.5,
       shadowColor: Colors.black12,
@@ -546,23 +510,23 @@ class _BeneficiaryCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
+                        color: const Color(0x33FF9100),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade300),
+                        border: Border.all(color: const Color(0x7FFF9100)),
                       ),
-                      child: Text('Pending',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.orange.shade800)),
+                      child: const Text('Pending',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFFFB74D))),
                     )
                   else if (b.isRejected)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
+                        color: const Color(0x33FF4757),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade300),
+                        border: Border.all(color: const Color(0x7FFF4757)),
                       ),
-                      child: Text('Rejected',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.red.shade700)),
+                      child: const Text('Rejected',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFFF6B7A))),
                     )
                   else if (b.latestStatus != null)
                     StatusBadge(status: b.latestStatus!),
@@ -575,6 +539,7 @@ class _BeneficiaryCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

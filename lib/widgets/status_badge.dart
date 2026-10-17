@@ -8,6 +8,16 @@ class StatusBadge extends StatelessWidget {
 
   const StatusBadge({super.key, required this.status, this.large = false});
 
+  static const _fullLabels = {
+    'SUW':    'Severely Underweight',
+    'UW':     'Underweight',
+    'Normal': 'Normal',
+    'OW':     'Overweight',
+    'OB':     'Obese',
+    'SW':     'Severely Wasted',
+    'MW':     'Moderately Wasted',
+  };
+
   @override
   Widget build(BuildContext context) {
     final color = nutritionStatusColor(status);
@@ -16,20 +26,25 @@ class StatusBadge extends StatelessWidget {
     final padH      = large ? 10.0 :  7.0;
     final padV      = large ?  5.0 :  3.0;
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
-      decoration: BoxDecoration(
-        color:        color.withValues(alpha: 0.15),
-        border:       Border.all(color: color.withValues(alpha: 0.6), width: 1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color:      color,
-          fontSize:   fontSize,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
+    return Semantics(
+      label: 'Nutritional status: ${_fullLabels[status] ?? label}',
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
+        decoration: BoxDecoration(
+          color:        color.withValues(alpha: 0.15),
+          border:       Border.all(color: color.withValues(alpha: 0.6), width: 1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: ExcludeSemantics(
+          child: Text(
+            label,
+            style: TextStyle(
+              color:      color,
+              fontSize:   fontSize,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
+          ),
         ),
       ),
     );

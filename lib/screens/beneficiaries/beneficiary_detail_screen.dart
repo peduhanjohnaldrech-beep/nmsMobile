@@ -26,7 +26,6 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
   late BeneficiaryModel _bene;
   List<AssessmentModel> _assessments = [];
   bool _loading     = true;
-  bool _submitting  = false;
 
   @override
   void initState() {
@@ -76,43 +75,6 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
       }
     } catch (_) {}
     await _loadAssessments();
-  }
-
-  Future<void> _submitToAdmin() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Submit to Admin'),
-        content: Text(
-          'Submit ${_bene.firstName} ${_bene.lastName} to the city health admin? '
-          'You will no longer be able to edit this record after submission.',
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, minimumSize: const Size(80, 40)),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _submitting = true);
-    final res = await _api.submitBeneficiary(_bene.id);
-    if (!mounted) return;
-    setState(() => _submitting = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(res['message'] ?? 'Done'),
-      backgroundColor: res['success'] == true ? Colors.green : Colors.red,
-    ));
-    if (res['success'] == true) {
-      await _local.markBeneficiarySubmitted(_bene.id);
-      await _refreshBeneficiary();
-    }
   }
 
   String _formatDate(String date) {
@@ -387,80 +349,20 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        border: Border.all(color: Colors.red.shade300),
+                        color: const Color(0x33FF4757),
+                        border: Border.all(color: const Color(0x7FFF4757)),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Row(children: [
-                        Icon(Icons.cancel_outlined, color: Colors.red.shade700, size: 18),
-                        const SizedBox(width: 8),
+                      child: const Row(children: [
+                        Icon(Icons.cancel_outlined, color: Color(0xFFFF6B7A), size: 18),
+                        SizedBox(width: 8),
                         Expanded(child: Text(
                           'Registration rejected. Please edit and resubmit for validation.',
-                          style: TextStyle(color: Colors.red.shade800, fontSize: 13),
+                          style: TextStyle(color: Color(0xFFFF6B7A), fontSize: 13),
                         )),
                       ]),
                     ),
                   ],
-
-                  // Submit banner for BNS — show when validated but not yet submitted
-                  Builder(builder: (ctx) {
-                    final role = ctx.read<AuthProvider>().user?.role ?? '';
-                    if (role != 'bns') return const SizedBox.shrink();
-                    if (_bene.isSubmitted) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          border: Border.all(color: Colors.blue.shade300),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(children: [
-                          Icon(Icons.check_circle_outline, color: Colors.blue.shade700, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(
-                            'Submitted to admin.',
-                            style: TextStyle(color: Colors.blue.shade800, fontSize: 13),
-                          )),
-                        ]),
-                      );
-                    }
-                    if (_bene.isValidated) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          border: Border.all(color: Colors.green.shade300),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(children: [
-                          Icon(Icons.verified_outlined, color: Colors.green.shade700, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(
-                            'Validated — ready to submit to admin.',
-                            style: TextStyle(color: Colors.green.shade800, fontSize: 13),
-                          )),
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            onPressed: _submitting ? null : _submitToAdmin,
-                            icon: _submitting
-                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                : const Icon(Icons.send_rounded, size: 16),
-                            label: const Text('Submit'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 36),
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              textStyle: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ]),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }),
 
                   // Personal info
                   InfoCard(
@@ -841,29 +743,29 @@ class _AssessmentHistoryCard extends StatelessWidget {
                                   ? Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.shade50,
-                                        border: Border.all(color: Colors.red.shade300),
+                                        color: const Color(0x33FF4757),
+                                        border: Border.all(color: const Color(0x7FFF4757)),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
-                                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                        Icon(Icons.cancel_rounded, size: 12, color: Colors.red.shade700),
-                                        const SizedBox(width: 4),
+                                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                        Icon(Icons.cancel_rounded, size: 12, color: Color(0xFFFF6B7A)),
+                                        SizedBox(width: 4),
                                         Text('Rejected',
-                                          style: TextStyle(fontSize: 11, color: Colors.red.shade700, fontWeight: FontWeight.w600)),
+                                          style: TextStyle(fontSize: 11, color: Color(0xFFFF6B7A), fontWeight: FontWeight.w600)),
                                       ]),
                                     )
                                   : Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.shade50,
-                                        border: Border.all(color: Colors.orange.shade300),
+                                        color: const Color(0x33FF9100),
+                                        border: Border.all(color: const Color(0x7FFF9100)),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
-                                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                        Icon(Icons.hourglass_top_rounded, size: 12, color: Colors.orange.shade700),
-                                        const SizedBox(width: 4),
+                                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                        Icon(Icons.hourglass_top_rounded, size: 12, color: Color(0xFFFFB74D)),
+                                        SizedBox(width: 4),
                                         Text('Pending Validation',
-                                          style: TextStyle(fontSize: 11, color: Colors.orange.shade700, fontWeight: FontWeight.w600)),
+                                          style: TextStyle(fontSize: 11, color: Color(0xFFFFB74D), fontWeight: FontWeight.w600)),
                                       ]),
                                     ),
                             ),

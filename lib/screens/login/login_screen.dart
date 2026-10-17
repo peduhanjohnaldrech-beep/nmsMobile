@@ -379,7 +379,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       'For BNS, BHW and authorized health workers only.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color:    Color(0xFF4A6070),
+                                        color:    Color(0xFF8AAFC4),
                                         fontSize: 11,
                                       ),
                                     ),
@@ -388,7 +388,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       'v${AppConfig.appVersion}',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color:    Color(0xFF3A5060),
+                                        color:    Color(0xFF6A8FA6),
                                         fontSize: 11,
                                       ),
                                     ),

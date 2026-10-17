@@ -131,12 +131,12 @@ class _DispensingFormScreenState extends State<DispensingFormScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                border: Border.all(color: Colors.green.shade200),
+                color: const Color(0x334CAF50),
+                border: Border.all(color: const Color(0x7F4CAF50)),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                const Icon(Icons.check_circle, color: Color(0xFF69F0AE), size: 18),
                 const SizedBox(width: 8),
                 Expanded(child: Text(
                   '${_selectedBene!['last_name']}, ${_selectedBene!['first_name']} • ${_selectedBene!['barangay'] ?? ''}',
