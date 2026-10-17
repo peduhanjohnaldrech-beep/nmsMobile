@@ -280,6 +280,7 @@ class _MainShellState extends State<MainShell> {
   final _sync = SyncService();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _wasOffline = false;
+  bool _isOffline  = false;
   bool _autoSyncing = false;
 
   // Pages shown in IndexedStack
@@ -312,9 +313,11 @@ class _MainShellState extends State<MainShell> {
     // Record initial connectivity so we can detect transitions
     final initial = await Connectivity().checkConnectivity();
     _wasOffline = initial.contains(ConnectivityResult.none);
+    if (mounted) setState(() => _isOffline = _wasOffline);
 
     _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
       final isOnline = !results.contains(ConnectivityResult.none);
+      if (mounted) setState(() => _isOffline = !isOnline);
       if (isOnline && _wasOffline && !_autoSyncing) {
         _autoSync();
       }
@@ -408,10 +411,26 @@ class _MainShellState extends State<MainShell> {
         onNavigate:   _navigate,
         onLogout:     _logout,
       ),
-      body: IndexedStack(
-        index:    _index,
-        children: _pages,
-      ),
+      body: Column(children: [
+        if (_isOffline)
+          Container(
+            width: double.infinity,
+            color: const Color(0xFF7F0000),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
+            child: const Row(children: [
+              Icon(Icons.wifi_off_rounded, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Text('No internet connection — working offline',
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+            ]),
+          ),
+        Expanded(
+          child: IndexedStack(
+            index:    _index,
+            children: _pages,
+          ),
+        ),
+      ]),
     );
   }
 }

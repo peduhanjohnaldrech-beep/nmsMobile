@@ -222,16 +222,14 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
                         CircleAvatar(
                           radius: 22,
                           backgroundColor: widget.beneficiary!.sex == 'Male'
-                              ? Colors.blue.shade100
-                              : Colors.pink.shade100,
+                              ? const Color(0xFF1565C0)
+                              : const Color(0xFFAD1457),
                           child: Text(
                             widget.beneficiary!.initials,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: widget.beneficiary!.sex == 'Male'
-                                  ? Colors.blue.shade800
-                                  : Colors.pink.shade800,
+                              color: Colors.white,
                             ),
                           ),
                         ),

@@ -29,8 +29,34 @@ class _State extends State<BeneficiaryFollowupScreen> {
     } catch (e) { setState(() { _error = e.toString(); _loading = false; }); }
   }
 
+  /// Returns overdue status for DSP children:
+  /// 'overdue'   — 30+ days since last assessment (or never assessed since enrollment)
+  /// 'due_soon'  — 25–29 days
+  /// null        — not DSP or assessed recently
+  String? _dspOverdueStatus(Map<String, dynamic> b) {
+    if ((b['is_dsp'] as int? ?? 0) != 1) return null;
+    final days = b['days_since_assessment'];
+    if (days == null) {
+      // Never assessed — check days since enrollment
+      final enrolled = b['dsp_enrollment_date'] as String?;
+      if (enrolled == null) return 'overdue';
+      final enrollDate = DateTime.tryParse(enrolled);
+      if (enrollDate == null) return null;
+      final daysSince = DateTime.now().difference(enrollDate).inDays;
+      if (daysSince >= 30) return 'overdue';
+      if (daysSince >= 25) return 'due_soon';
+      return null;
+    }
+    final d = int.tryParse(days.toString()) ?? 0;
+    if (d >= 30) return 'overdue';
+    if (d >= 25) return 'due_soon';
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final overdueCount = _items.where((b) => _dspOverdueStatus(b) == 'overdue').length;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Follow-up List'),
@@ -56,12 +82,18 @@ class _State extends State<BeneficiaryFollowupScreen> {
               ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
               : Column(children: [
                   Container(
-                    color: Colors.orange[50],
+                    color: const Color(0x33FF9800),
                     padding: const EdgeInsets.all(12),
                     child: Row(children: [
-                      const Icon(Icons.warning_amber, color: Colors.orange),
+                      const Icon(Icons.warning_amber, color: Color(0xFFFFB74D)),
                       const SizedBox(width: 8),
-                      Text('${_items.length} beneficiaries need follow-up', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(
+                        child: Text(
+                          '${_items.length} beneficiaries need follow-up'
+                          '${overdueCount > 0 ? ' • $overdueCount DSP overdue' : ''}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFFCC80)),
+                        ),
+                      ),
                     ]),
                   ),
                   Expanded(
@@ -71,15 +103,36 @@ class _State extends State<BeneficiaryFollowupScreen> {
                             itemCount: _items.length,
                             itemBuilder: (_, i) {
                               final b = _items[i];
+                              final wfa  = b['nutritional_status'] as String? ?? '';
+                              final wflh = b['wflh_status']       as String? ?? '';
+                              final isDsp = (b['is_dsp'] as int? ?? 0) == 1;
+                              final overdueStatus = _dspOverdueStatus(b);
+
                               return ListTile(
-                                leading: StatusBadge(status: b['nutritional_status'] ?? ''),
-                                title: Text('${b['last_name']}, ${b['first_name']}'),
-                                subtitle: Text('${b['barangay']} • ${b['assessment_date'] ?? ''} • ${b['weight_kg'] ?? ''} kg'),
+                                leading: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (wfa.isNotEmpty) StatusBadge(status: wfa),
+                                    if (wflh.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      StatusBadge(status: wflh),
+                                    ],
+                                  ],
+                                ),
+                                title: Row(
+                                  children: [
+                                    Expanded(child: Text('${b['last_name']}, ${b['first_name']}')),
+                                    if (isDsp) ...[
+                                      const SizedBox(width: 4),
+                                      _dspBadge(overdueStatus),
+                                    ],
+                                  ],
+                                ),
+                                subtitle: Text('${b['barangay']} • ${b['assessment_date'] ?? 'No assessment'} • ${b['weight_kg'] ?? '—'} kg'),
                                 trailing: b['contact_number'] != null
                                     ? const Icon(Icons.phone, color: Colors.green)
                                     : const Icon(Icons.chevron_right, color: Color(0xFF616161)),
                                 onTap: () async {
-                                  // fetch full beneficiary then navigate to detail
                                   final nav = Navigator.of(context);
                                   final res = await _api.getBeneficiary(b['id'] as int);
                                   if (!mounted) return;
@@ -94,6 +147,28 @@ class _State extends State<BeneficiaryFollowupScreen> {
                           ),
                   ),
                 ]),
+    );
+  }
+
+  Widget _dspBadge(String? overdueStatus) {
+    if (overdueStatus == 'overdue') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)),
+        child: const Text('DSP Overdue', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+      );
+    }
+    if (overdueStatus == 'due_soon') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+        child: const Text('DSP Due Soon', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: Colors.blue[700], borderRadius: BorderRadius.circular(4)),
+      child: const Text('DSP', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 }

@@ -437,15 +437,13 @@ class _BeneficiaryCard extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor:
-                    isMale ? Colors.blue.shade100 : Colors.pink.shade100,
+                    isMale ? const Color(0xFF1565C0) : const Color(0xFFAD1457),
                 child: Text(
                   b.initials,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize:   15,
                     fontWeight: FontWeight.w700,
-                    color:      isMale
-                        ? Colors.blue.shade800
-                        : Colors.pink.shade800,
+                    color:      Colors.white,
                   ),
                 ),
               ),

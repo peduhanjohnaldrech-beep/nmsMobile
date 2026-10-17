@@ -671,12 +671,12 @@ class _AssessmentHistoryCard extends StatelessWidget {
                                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                         decoration: BoxDecoration(
                                           color: a.periodNumber == 1
-                                              ? Colors.blue.shade50
-                                              : Colors.purple.shade50,
+                                              ? const Color(0x221565C0)
+                                              : const Color(0x227C3AED),
                                           border: Border.all(
                                             color: a.periodNumber == 1
-                                                ? Colors.blue.shade200
-                                                : Colors.purple.shade200,
+                                                ? const Color(0x7F1565C0)
+                                                : const Color(0x7F7C3AED),
                                           ),
                                           borderRadius: BorderRadius.circular(6),
                                         ),
@@ -686,8 +686,8 @@ class _AssessmentHistoryCard extends StatelessWidget {
                                             fontSize:   9,
                                             fontWeight: FontWeight.w700,
                                             color: a.periodNumber == 1
-                                                ? Colors.blue.shade700
-                                                : Colors.purple.shade700,
+                                                ? const Color(0xFF82B1FF)
+                                                : const Color(0xFFB39DDB),
                                           ),
                                         ),
                                       ),

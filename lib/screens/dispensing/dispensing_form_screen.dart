@@ -200,7 +200,12 @@ class _DispensingFormScreenState extends State<DispensingFormScreen> {
                 controller: _qtyCtrl,
                 decoration: const InputDecoration(labelText: 'Quantity *', border: OutlineInputBorder()),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) => _program == 'DSP' || (v != null && v.isNotEmpty) ? null : 'Required',
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Required';
+                  final val = double.tryParse(v.trim());
+                  if (val == null || val <= 0) return 'Enter a valid quantity';
+                  return null;
+                },
               ),
             ),
             const SizedBox(width: 10),

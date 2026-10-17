@@ -107,16 +107,16 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.orange.shade50,
+              color: const Color(0x33FF9100),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.shade200),
+              border: Border.all(color: const Color(0x7FFF9100)),
             ),
             child: Row(children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.orange.shade700),
+              const Icon(Icons.info_outline, size: 14, color: Color(0xFFFFB74D)),
               const SizedBox(width: 6),
               Expanded(child: Text(
                 'This will be sent back to the BHW for correction.',
-                style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                style: TextStyle(fontSize: 12, color: Colors.orange.shade300),
               )),
             ]),
           ),
@@ -183,16 +183,16 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.orange.shade50,
+              color: const Color(0x33FF9100),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.shade200),
+              border: Border.all(color: const Color(0x7FFF9100)),
             ),
             child: Row(children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.orange.shade700),
+              const Icon(Icons.info_outline, size: 14, color: Color(0xFFFFB74D)),
               const SizedBox(width: 6),
               Expanded(child: Text(
                 'This will be sent back to the BHW for correction.',
-                style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                style: TextStyle(fontSize: 12, color: Colors.orange.shade300),
               )),
             ]),
           ),

@@ -905,8 +905,17 @@ class ApiService {
       _token = null;
       if (!_redirectingToLogin) {
         _redirectingToLogin = true;
-        navigatorKey.currentState
-            ?.pushNamedAndRemoveUntil('/login', (_) => false);
+        final ctx = navigatorKey.currentContext;
+        if (ctx != null) {
+          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+            content: Text('Session expired. Please log in again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ));
+        }
+        Future.delayed(const Duration(seconds: 1), () {
+          navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (_) => false);
+        });
       }
       return {'success': false, 'message': 'Session expired. Please log in again.'};
     }

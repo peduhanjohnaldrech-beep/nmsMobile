@@ -260,12 +260,12 @@ class _InfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color:        Colors.blue.shade50,
-        border:       Border.all(color: Colors.blue.shade200),
+        color:        const Color(0xFF0D1E35),
+        border:       Border.all(color: const Color(0x7F1565C0)),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(children: [
-        Icon(Icons.check_circle_rounded, color: Colors.blue.shade600, size: 16),
+        const Icon(Icons.check_circle_rounded, color: Color(0xFF82B1FF), size: 16),
         const SizedBox(width: 8),
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

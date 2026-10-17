@@ -139,9 +139,9 @@ Color _statusColor(String s) => switch (s) {
 };
 
 Color _statusBgColor(String s) => switch (s) {
-  'validated' => const Color(0xFFE8F5E9),
-  'rejected'  => const Color(0xFFFFEBEE),
-  _           => const Color(0xFFFFF3E0),
+  'validated' => const Color(0x334CAF50),
+  'rejected'  => const Color(0x33FF4757),
+  _           => const Color(0x33FF9100),
 };
 
 IconData _statusIcon(String s) => switch (s) {
@@ -182,29 +182,29 @@ Widget _rejectionBox(String note) => Container(
   margin: const EdgeInsets.only(top: 8),
   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
   decoration: BoxDecoration(
-    color: Colors.orange.shade50,
+    color: const Color(0x33FF9100),
     borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: Colors.orange.shade200),
+    border: Border.all(color: const Color(0x7FFF9100)),
   ),
   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
-      Icon(Icons.reply_rounded, size: 13, color: Colors.orange.shade700),
+      const Icon(Icons.reply_rounded, size: 13, color: Color(0xFFFFB74D)),
       const SizedBox(width: 5),
-      Text('Midwife\'s note:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.orange.shade800)),
+      const Text('Midwife\'s note:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFFFB74D))),
     ]),
     const SizedBox(height: 4),
-    Text(note, style: TextStyle(fontSize: 12, color: Colors.orange.shade900)),
+    Text(note, style: const TextStyle(fontSize: 12, color: Color(0xFFFFCC80))),
   ]),
 );
 
 Widget _nutritionBadge(String? status) {
   if (status == null || status.isEmpty) return const SizedBox.shrink();
   final Map<String, List<Color>> map = {
-    'SUW':    [const Color(0xFFFFEBEE), const Color(0xFFB71C1C)],
-    'UW':     [const Color(0xFFFFF3E0), const Color(0xFFE65100)],
-    'Normal': [const Color(0xFFE8F5E9), const Color(0xFF1B5E20)],
-    'OW':     [const Color(0xFFFFFDE7), const Color(0xFFF57F17)],
-    'OB':     [const Color(0xFFF3E5F5), const Color(0xFF4A148C)],
+    'SUW':    [const Color(0x33B71C1C), const Color(0xFFEF5350)],
+    'UW':     [const Color(0x33E65100), const Color(0xFFFFB74D)],
+    'Normal': [const Color(0x334CAF50), const Color(0xFF69F0AE)],
+    'OW':     [const Color(0x330288D1), const Color(0xFF4FC3F7)],
+    'OB':     [const Color(0x337C3AED), const Color(0xFFB39DDB)],
   };
   final colors = map[status] ?? [const Color(0xFF0F1E35), const Color(0xFFCDD5DE)];
   return Container(
