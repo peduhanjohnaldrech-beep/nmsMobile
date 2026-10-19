@@ -339,7 +339,7 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                         Icon(Icons.hourglass_top_rounded, color: Colors.orange.shade700, size: 18),
                         const SizedBox(width: 8),
                         Expanded(child: Text(
-                          'Pending midwife validation — assessments are locked until approved.',
+                          'Registration is pending approval.',
                           style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
                         )),
                       ]),
