@@ -1264,10 +1264,13 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
   bool _searching = false;
   bool _saving    = false;
 
-  String _dosageIu     = '100000';
-  String _capsuleColor = 'Blue';
-  String _ageGroup     = '6-11 months';
-  bool   _completed    = false;
+  String _dosageIu      = '100000';
+  String _capsuleColor  = 'Blue';
+  String _ageGroup      = '6-11 months';
+  bool   _completed     = false;
+  bool   _counseling    = false;
+  String _deliveryMode  = 'Health Post';
+  final _weightCtrl     = TextEditingController();
 
   @override
   void initState() {
@@ -1287,7 +1290,7 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
   }
 
   @override
-  void dispose() { _searchCtrl.dispose(); _dateCtrl.dispose(); _notesCtrl.dispose(); _sachetsCtrl.dispose(); super.dispose(); }
+  void dispose() { _searchCtrl.dispose(); _dateCtrl.dispose(); _notesCtrl.dispose(); _sachetsCtrl.dispose(); _weightCtrl.dispose(); super.dispose(); }
 
   Future<void> _search(String q) async {
     if (q.length < 2) { setState(() => _results = []); return; }
@@ -1310,9 +1313,9 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
     if (_selected == null) { _snack('Select a beneficiary first', false); return; }
     if (widget.type == 'lnssq') {
       final given  = DateTime.tryParse(_dateCtrl.text);
-      final cutoff = DateTime.now().subtract(const Duration(days: 30));
+      final cutoff = DateTime.now().subtract(const Duration(days: 90));
       if (given != null && given.isBefore(cutoff)) {
-        _snack('Date is too far in the past. Maximum 30 days back allowed.', false);
+        _snack('Date is too far in the past. Maximum 90 days back allowed.', false);
         return;
       }
     }
@@ -1323,12 +1326,14 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
         'beneficiary_id': _selected!['id'], 'distribution_date': _dateCtrl.text,
         'round': widget.round, 'year': widget.year,
         'dosage_iu': int.tryParse(_dosageIu) ?? 100000, 'capsule_color': _capsuleColor,
+        'delivery_mode': _deliveryMode,
       });
     } else if (widget.type == 'mnp') {
       call = _api.recordMnp({
         'beneficiary_id': _selected!['id'], 'date_given': _dateCtrl.text,
         'year': widget.year, 'age_group': _ageGroup,
         'completed_routine': _completed ? 1 : 0,
+        'counseling_given': _counseling ? 1 : 0,
         'sachets_distributed': _sachetsCtrl.text.isEmpty ? null : int.tryParse(_sachetsCtrl.text),
         'notes': _notesCtrl.text,
       });
@@ -1338,6 +1343,7 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
         'year': widget.year, 'age_group': _ageGroup,
         'completed_routine': _completed ? 1 : 0,
         'sachets_distributed': _sachetsCtrl.text.isEmpty ? null : int.tryParse(_sachetsCtrl.text),
+        if (_weightCtrl.text.isNotEmpty) 'weight_kg': double.tryParse(_weightCtrl.text),
         'notes': _notesCtrl.text,
       });
     }
@@ -1376,7 +1382,7 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
       const SizedBox(height: 12),
       _dateField(context, _dateCtrl, widget.type == 'vitamina' ? 'Distribution Date' : 'Date Given'),
       const SizedBox(height: 12),
-      if (widget.type == 'vitamina')
+      if (widget.type == 'vitamina') ...[
         DropdownButtonFormField<String>(
           value: _dosageIu,
           decoration: const InputDecoration(labelText: 'Dosage', border: OutlineInputBorder()),
@@ -1385,8 +1391,19 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
             DropdownMenuItem(value: '200000', child: Text('200,000 IU (Red capsule)')),
           ],
           onChanged: (v) => setState(() { _dosageIu = v!; _capsuleColor = v == '100000' ? 'Blue' : 'Red'; }),
-        )
-      else ...[
+        ),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          value: _deliveryMode,
+          decoration: const InputDecoration(labelText: 'Delivery Mode', border: OutlineInputBorder()),
+          items: const [
+            DropdownMenuItem(value: 'Health Post', child: Text('Health Post')),
+            DropdownMenuItem(value: 'Home Visit',  child: Text('Home Visit')),
+            DropdownMenuItem(value: 'Outreach',    child: Text('Outreach')),
+          ],
+          onChanged: (v) => setState(() => _deliveryMode = v!),
+        ),
+      ] else ...[
         DropdownButtonFormField<String>(
           value: _ageGroup,
           decoration: const InputDecoration(labelText: 'Age Group', border: OutlineInputBorder()),
@@ -1407,12 +1424,31 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
             prefixIcon: const Icon(Icons.inventory_2_outlined, size: 18),
           ),
         ),
+        if (widget.type == 'lnssq') ...[
+          const SizedBox(height: 10),
+          TextField(
+            controller: _weightCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Current Weight (kg, optional)',
+              border: OutlineInputBorder(),
+              hintText: 'e.g. 8.5',
+              prefixIcon: Icon(Icons.monitor_weight_outlined, size: 18),
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         SwitchListTile(
           value: _completed, onChanged: (v) => setState(() => _completed = v),
           title: const Text('Routine Completed', style: TextStyle(fontSize: 14)),
           contentPadding: EdgeInsets.zero,
         ),
+        if (widget.type == 'mnp')
+          SwitchListTile(
+            value: _counseling, onChanged: (v) => setState(() => _counseling = v),
+            title: const Text('Counseling / IYCF orientation given', style: TextStyle(fontSize: 14)),
+            contentPadding: EdgeInsets.zero,
+          ),
         TextField(controller: _notesCtrl,
             decoration: const InputDecoration(labelText: 'Notes (optional)', border: OutlineInputBorder()), maxLines: 2),
       ],
