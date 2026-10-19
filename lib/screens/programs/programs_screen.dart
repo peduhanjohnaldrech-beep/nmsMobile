@@ -1308,7 +1308,7 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
 
   Future<void> _save() async {
     if (_selected == null) { _snack('Select a beneficiary first', false); return; }
-    if (widget.type != 'vitamina') {
+    if (widget.type == 'lnssq') {
       final given  = DateTime.tryParse(_dateCtrl.text);
       final cutoff = DateTime.now().subtract(const Duration(days: 30));
       if (given != null && given.isBefore(cutoff)) {
@@ -1368,6 +1368,7 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
             final dob    = DateTime.tryParse(b['date_of_birth'] as String);
             final months = dob != null ? (DateTime.now().year - dob.year) * 12 + (DateTime.now().month - dob.month) : 12;
             _ageGroup = months < 12 ? '6-11 months' : '12-23 months';
+            if (widget.type == 'vitamina') { _dosageIu = months <= 11 ? '100000' : '200000'; _capsuleColor = months <= 11 ? 'Blue' : 'Red'; }
           }
         }),
         onClear: () => setState(() { _selected = null; _searchCtrl.clear(); _results = []; }),
@@ -1402,7 +1403,7 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
           decoration: InputDecoration(
             labelText: 'Sachets Distributed (optional)',
             border: const OutlineInputBorder(),
-            hintText: widget.type == 'mnp' ? 'Total: 60 sachets' : 'e.g. 15',
+            hintText: widget.type == 'mnp' ? 'Total: 90 sachets' : 'Total: 30 sachets',
             prefixIcon: const Icon(Icons.inventory_2_outlined, size: 18),
           ),
         ),
@@ -1483,8 +1484,8 @@ class _MnsDefaulterTab extends StatelessWidget {
               final barangay  = r['barangay'] ?? '';
               final purok     = (r['purok_zone'] ?? '').toString();
 
-              final missingFeb = _is1(r['elig_vita_feb']) && !_is1(r['got_vita_feb']);
-              final missingAug = _is1(r['elig_vita_aug']) && !_is1(r['got_vita_aug']);
+              final missingFeb = _is1(r['elig_vita_april']) && !_is1(r['got_vita_april']);
+              final missingAug = _is1(r['elig_vita_oct']) && !_is1(r['got_vita_oct']);
               final missingMnp = _is1(r['elig_mnp'])      && !_is1(r['got_mnp']);
               final missingLns = _is1(r['elig_lns'])      && !_is1(r['got_lns']);
 
@@ -1557,15 +1558,15 @@ class _MnsDefaulterTab extends StatelessWidget {
                         if (missingAug) _chip('Vita A Oct', true),
                         if (missingMnp) _chip('MNP', true),
                         if (missingLns) _chip('LNS-SQ', true),
-                        if (!missingFeb && _is1(r['elig_vita_feb'])) _chip('Vita A Apr', false),
-                        if (!missingAug && _is1(r['elig_vita_aug'])) _chip('Vita A Oct', false),
+                        if (!missingFeb && _is1(r['elig_vita_april'])) _chip('Vita A Apr', false),
+                        if (!missingAug && _is1(r['elig_vita_oct'])) _chip('Vita A Oct', false),
                         if (!missingMnp && _is1(r['elig_mnp']))      _chip('MNP', false),
                         if (!missingLns && _is1(r['elig_lns']))       _chip('LNS-SQ', false),
                       ]),
                       // Reason display / entry
                       Builder(builder: (_) {
                         final reasons = r['reasons'];
-                        final firstKey = missingFeb ? 'vita_feb' : missingAug ? 'vita_aug' : missingMnp ? 'mnp' : missingLns ? 'lns' : null;
+                        final firstKey = missingFeb ? 'vita_april' : missingAug ? 'vita_oct' : missingMnp ? 'mnp' : missingLns ? 'lns' : null;
                         final existingReason = firstKey != null && reasons is Map ? reasons[firstKey]?.toString() ?? '' : '';
                         if (existingReason.isNotEmpty) {
                           return Padding(
