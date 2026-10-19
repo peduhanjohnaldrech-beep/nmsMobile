@@ -148,7 +148,7 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
     final result = await Navigator.pushNamed(ctx, '/beneficiaries/create');
     _load(reset: true);
     if (!mounted) return;
-    if (result is Map && result['openAssessment'] != null) {
+    if (result is Map && result.containsKey('openAssessment')) {
       final bene = result['openAssessment'] as BeneficiaryModel?;
       await Navigator.push(
         context,
