@@ -314,7 +314,7 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                               const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF4A6080)),
                               const SizedBox(width: 4),
                               Text(
-                                '${_formatDate(latestAssessment.assessmentDate)}  •  ${latestAssessment.periodDisplay}',
+                                _formatDate(latestAssessment.assessmentDate),
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
                               ),
                             ]),
@@ -658,40 +658,6 @@ class _AssessmentHistoryCard extends StatelessWidget {
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    Row(children: [
-                                      Text(
-                                        a.periodDisplay,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color:    Color(0xFF9E9E9E),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                        decoration: BoxDecoration(
-                                          color: a.periodNumber == 1
-                                              ? const Color(0x221565C0)
-                                              : const Color(0x227C3AED),
-                                          border: Border.all(
-                                            color: a.periodNumber == 1
-                                                ? const Color(0x7F1565C0)
-                                                : const Color(0x7F7C3AED),
-                                          ),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          a.periodLabel,
-                                          style: TextStyle(
-                                            fontSize:   9,
-                                            fontWeight: FontWeight.w700,
-                                            color: a.periodNumber == 1
-                                                ? const Color(0xFF82B1FF)
-                                                : const Color(0xFFB39DDB),
-                                          ),
-                                        ),
-                                      ),
-                                    ]),
                                   ],
                                 ),
                               ),
