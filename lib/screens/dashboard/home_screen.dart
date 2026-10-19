@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/beneficiary_model.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_provider.dart';
 import '../../services/local_db_service.dart';
 import '../../services/sync_service.dart';
-import '../../widgets/sync_banner.dart';
 import '../../widgets/info_card.dart';
 import '../../widgets/status_badge.dart';
 
@@ -124,33 +124,108 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
   Widget build(BuildContext context) {
     context.watch<AuthProvider>();
+    final user  = context.read<AuthProvider>().user;
+    final role  = user?.role ?? '';
     final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF060D1F),
       body: RefreshIndicator(
         onRefresh: _doSync,
-        child: SingleChildScrollView(
+        color: const Color(0xFF00C6FF),
+        backgroundColor: const Color(0xFF0B1527),
+        child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                // Sync banner
-                SyncBanner(
-                  unsyncedCount: _unsyncedCount,
-                  lastSyncAt:    _lastSyncAt,
-                  syncing:       _syncing,
-                  onSyncTap:     _doSync,
+          slivers: [
+            // ── Header ──────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end:   Alignment.bottomRight,
+                    colors: [Color(0xFF0B1A3D), Color(0xFF060D1F)],
+                  ),
                 ),
+                padding: EdgeInsets.fromLTRB(
+                  20, MediaQuery.of(context).padding.top + 16, 20, 20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${_greeting()},',
+                            style: const TextStyle(
+                              fontSize:   14,
+                              color:      Color(0xFF8EAFD4),
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            user?.fullName.split(' ').first ?? 'User',
+                            style: const TextStyle(
+                              fontSize:   24,
+                              fontWeight: FontWeight.w700,
+                              color:      Color(0xFFE8F4FD),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(children: [
+                            _RoleBadge(role: role),
+                            if ((user?.barangay ?? '').isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.location_on_rounded,
+                                  size: 12, color: Color(0xFF8EAFD4)),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: Text(
+                                  user!.barangay!,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color:    Color(0xFF8EAFD4),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ]),
+                        ],
+                      ),
+                    ),
+                    // Sync indicator button
+                    _SyncButton(
+                      syncing:       _syncing,
+                      unsyncedCount: _unsyncedCount,
+                      lastSyncAt:    _lastSyncAt,
+                      onTap:         _doSync,
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
-                // Stats row
-                if (!kIsWeb) ...[
-                  Row(
-                    children: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+
+                  // ── Stats ────────────────────────────────────────────
+                  if (!kIsWeb) ...[
+                    Row(children: [
                       StatCard(
                         label: 'Beneficiaries',
                         value: _totalBene.toString(),
@@ -166,88 +241,37 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.orange,
                         onTap: () => Navigator.pushNamed(context, '/beneficiaries'),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                      const SizedBox(width: 8),
+                      _MiniStatCard(
+                        label: 'Unsynced',
+                        value: _unsyncedCount.toString(),
+                        icon:  Icons.cloud_upload_rounded,
+                        color: _unsyncedCount > 0 ? Colors.amber : Colors.green,
+                      ),
+                    ]),
+                    const SizedBox(height: 16),
+                  ],
 
-                // Validation alert card
-                if (_pendingAssessments > 0 || _pendingBeneficiaries > 0) ...[
-                  _ValidationAlertCard(
-                    pendingAssessments:   _pendingAssessments,
-                    pendingBeneficiaries: _pendingBeneficiaries,
-                    user: context.read<AuthProvider>().user,
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                  // ── Validation alert ─────────────────────────────────
+                  if (_pendingAssessments > 0 || _pendingBeneficiaries > 0) ...[
+                    _ValidationAlertCard(
+                      pendingAssessments:   _pendingAssessments,
+                      pendingBeneficiaries: _pendingBeneficiaries,
+                      user: user,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
-                // Quick actions
-                const _SectionHeader(title: 'Quick Actions'),
-                const SizedBox(height: 10),
-                Builder(builder: (context) {
-                  final u    = context.read<AuthProvider>().user;
-                  final role = u?.role ?? '';
-                  final actions = <_QuickActionCard>[
+                  // ── Quick Actions ────────────────────────────────────
+                  const _SectionHeader(title: 'Quick Actions'),
+                  const SizedBox(height: 10),
+                  Builder(builder: (context) {
+                    final u = context.read<AuthProvider>().user;
+                    final r = u?.role ?? '';
+                    final actions = <_QuickActionCard>[
 
-                    // ── BNS / BHW ──────────────────────────────────────
-                    if (role == 'bns' || role == 'bhw') ...[
-                      _QuickActionCard(
-                        icon:  Icons.person_add_rounded,
-                        label: 'Add Beneficiary',
-                        color: Colors.blue.shade700,
-                        onTap: () => Navigator.pushNamed(context, '/beneficiaries/create')
-                            .then((_) => _loadAll()),
-                      ),
-                      _QuickActionCard(
-                        icon:  Icons.people_rounded,
-                        label: 'My Beneficiaries',
-                        color: Colors.indigo.shade600,
-                        onTap: () => Navigator.pushNamed(context, '/beneficiaries'),
-                      ),
-                      _QuickActionCard(
-                        icon:  Icons.monitor_weight_rounded,
-                        label: 'OPT Weighing',
-                        color: Colors.teal.shade700,
-                        onTap: () => Navigator.pushNamed(context, '/assessments/batch')
-                            .then((_) => _loadAll()),
-                      ),
-                      _QuickActionCard(
-                        icon:  Icons.track_changes_rounded,
-                        label: 'DSP Follow-up',
-                        color: Colors.cyan.shade700,
-                        onTap: () => Navigator.pushNamed(context, '/dsp/monitoring')
-                            .then((_) => _loadAll()),
-                      ),
-                      _QuickActionCard(
-                        icon:  Icons.assignment_turned_in_outlined,
-                        label: 'My Submissions',
-                        color: Colors.orange.shade700,
-                        onTap: () => Navigator.pushNamed(context, '/validation/submissions')
-                            .then((_) => _loadAll()),
-                      ),
-                    ],
-
-                    // ── MIDWIFE ─────────────────────────────────────────
-                    if (role == 'midwife') ...[
-                      _QuickActionCard(
-                        icon:  Icons.fact_check_outlined,
-                        label: 'Validation Queue',
-                        color: Colors.orange.shade700,
-                        onTap: () => Navigator.pushNamed(context, '/validation/queue')
-                            .then((_) => _loadAll()),
-                      ),
-                      _QuickActionCard(
-                        icon:  Icons.track_changes_rounded,
-                        label: 'Track Records',
-                        color: Colors.teal.shade700,
-                        onTap: () => Navigator.pushNamed(context, '/validation/track')
-                            .then((_) => _loadAll()),
-                      ),
-                    ],
-
-                    // ── ADMIN / NUTRITIONIST / ENCODER ──────────────────
-                    if (role == 'admin' || role == 'nutritionist' || role == 'encoder') ...[
-                      if (u?.hasPermission('beneficiaries') ?? false) ...[
+                      // ── BNS / BHW ──────────────────────────────────
+                      if (r == 'bns' || r == 'bhw') ...[
                         _QuickActionCard(
                           icon:  Icons.person_add_rounded,
                           label: 'Add Beneficiary',
@@ -257,97 +281,157 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         _QuickActionCard(
                           icon:  Icons.people_rounded,
-                          label: 'Beneficiaries',
+                          label: 'My Beneficiaries',
                           color: Colors.indigo.shade600,
                           onTap: () => Navigator.pushNamed(context, '/beneficiaries'),
                         ),
-                      ],
-                      if (u?.hasPermission('assessments') ?? false)
-                        _QuickActionCard(
-                          icon:  Icons.assignment_add,
-                          label: 'Add Assessment',
-                          color: Colors.teal.shade700,
-                          onTap: () => Navigator.pushNamed(context, '/assessments/create')
-                              .then((_) => _loadAll()),
-                        ),
-                      if (u?.hasPermission('programs') ?? false)
                         _QuickActionCard(
                           icon:  Icons.vaccines_outlined,
                           label: 'Programs',
                           color: Colors.purple.shade700,
                           onTap: () => Navigator.pushNamed(context, '/programs'),
                         ),
-                      if (u?.hasPermission('dispensing') ?? false)
                         _QuickActionCard(
-                          icon:  Icons.medical_services_outlined,
-                          label: 'Dispensing',
-                          color: Colors.teal.shade600,
-                          onTap: () => Navigator.pushNamed(context, '/dispensing'),
+                          icon:  Icons.monitor_weight_rounded,
+                          label: 'OPT Weighing',
+                          color: Colors.teal.shade700,
+                          onTap: () => Navigator.pushNamed(context, '/assessments/batch')
+                              .then((_) => _loadAll()),
                         ),
-                      if (u?.hasPermission('reports') ?? false)
                         _QuickActionCard(
-                          icon:  Icons.bar_chart_rounded,
-                          label: 'Reports',
-                          color: Colors.brown.shade600,
-                          onTap: () => Navigator.pushNamed(context, '/reports'),
+                          icon:  Icons.track_changes_rounded,
+                          label: 'DSP Follow-up',
+                          color: Colors.cyan.shade700,
+                          onTap: () => Navigator.pushNamed(context, '/dsp/monitoring')
+                              .then((_) => _loadAll()),
                         ),
-                      if (u?.hasPermission('activity_log') ?? false)
                         _QuickActionCard(
-                          icon:  Icons.history_rounded,
-                          label: 'Activity Log',
-                          color: Colors.blueGrey.shade700,
-                          onTap: () => Navigator.pushNamed(context, '/activity'),
+                          icon:  Icons.assignment_turned_in_outlined,
+                          label: 'My Submissions',
+                          color: Colors.orange.shade700,
+                          onTap: () => Navigator.pushNamed(context, '/validation/submissions')
+                              .then((_) => _loadAll()),
                         ),
-                      if (u?.hasPermission('validation') ?? false)
+                      ],
+
+                      // ── MIDWIFE ────────────────────────────────────
+                      if (r == 'midwife') ...[
                         _QuickActionCard(
                           icon:  Icons.fact_check_outlined,
-                          label: 'Validation',
+                          label: 'Validation Queue',
                           color: Colors.orange.shade700,
-                          onTap: () => Navigator.pushNamed(context, '/validation/queue'),
+                          onTap: () => Navigator.pushNamed(context, '/validation/queue')
+                              .then((_) => _loadAll()),
                         ),
-                    ],
+                        _QuickActionCard(
+                          icon:  Icons.track_changes_rounded,
+                          label: 'Track Records',
+                          color: Colors.teal.shade700,
+                          onTap: () => Navigator.pushNamed(context, '/validation/track')
+                              .then((_) => _loadAll()),
+                        ),
+                      ],
 
-                    // ── ALWAYS ──────────────────────────────────────────
-                    _QuickActionCard(
-                      icon:  Icons.sync_rounded,
-                      label: 'Sync Now',
-                      color: Colors.green.shade700,
-                      onTap: _syncing ? null : _doSync,
-                    ),
-                  ];
-                  return GridView.count(
-                    crossAxisCount: 3,
-                    shrinkWrap:     true,
-                    physics:        const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing:  8,
-                    childAspectRatio: 1.1,
-                    children: actions,
-                  );
-                }),
-                const SizedBox(height: 20),
+                      // ── ADMIN / NUTRITIONIST / ENCODER ────────────
+                      if (r == 'admin' || r == 'nutritionist' || r == 'encoder') ...[
+                        if (u?.hasPermission('beneficiaries') ?? false) ...[
+                          _QuickActionCard(
+                            icon:  Icons.person_add_rounded,
+                            label: 'Add Beneficiary',
+                            color: Colors.blue.shade700,
+                            onTap: () => Navigator.pushNamed(context, '/beneficiaries/create')
+                                .then((_) => _loadAll()),
+                          ),
+                          _QuickActionCard(
+                            icon:  Icons.people_rounded,
+                            label: 'Beneficiaries',
+                            color: Colors.indigo.shade600,
+                            onTap: () => Navigator.pushNamed(context, '/beneficiaries'),
+                          ),
+                        ],
+                        if (u?.hasPermission('assessments') ?? false)
+                          _QuickActionCard(
+                            icon:  Icons.assignment_add,
+                            label: 'Add Assessment',
+                            color: Colors.teal.shade700,
+                            onTap: () => Navigator.pushNamed(context, '/assessments/create')
+                                .then((_) => _loadAll()),
+                          ),
+                        if (u?.hasPermission('programs') ?? false)
+                          _QuickActionCard(
+                            icon:  Icons.vaccines_outlined,
+                            label: 'Programs',
+                            color: Colors.purple.shade700,
+                            onTap: () => Navigator.pushNamed(context, '/programs'),
+                          ),
+                        if (u?.hasPermission('dispensing') ?? false)
+                          _QuickActionCard(
+                            icon:  Icons.medical_services_outlined,
+                            label: 'Dispensing',
+                            color: Colors.teal.shade600,
+                            onTap: () => Navigator.pushNamed(context, '/dispensing'),
+                          ),
+                        if (u?.hasPermission('reports') ?? false)
+                          _QuickActionCard(
+                            icon:  Icons.bar_chart_rounded,
+                            label: 'Reports',
+                            color: Colors.brown.shade600,
+                            onTap: () => Navigator.pushNamed(context, '/reports'),
+                          ),
+                        if (u?.hasPermission('activity_log') ?? false)
+                          _QuickActionCard(
+                            icon:  Icons.history_rounded,
+                            label: 'Activity Log',
+                            color: Colors.blueGrey.shade700,
+                            onTap: () => Navigator.pushNamed(context, '/activity'),
+                          ),
+                        if (u?.hasPermission('validation') ?? false)
+                          _QuickActionCard(
+                            icon:  Icons.fact_check_outlined,
+                            label: 'Validation',
+                            color: Colors.orange.shade700,
+                            onTap: () => Navigator.pushNamed(context, '/validation/queue'),
+                          ),
+                      ],
+                    ];
+                    return GridView.count(
+                      crossAxisCount:   3,
+                      shrinkWrap:       true,
+                      physics:          const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing:  8,
+                      childAspectRatio: 1.05,
+                      children: actions,
+                    );
+                  }),
+                  const SizedBox(height: 20),
 
-                // Recent beneficiaries
-                if (!kIsWeb && _recent.isNotEmpty) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const _SectionHeader(title: 'Recent Beneficiaries'),
-                      TextButton(
-                        onPressed: () => Navigator.pushNamed(context, '/beneficiaries'),
-                        child: const Text('See All'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Card(
-                    child: Column(
+                  // ── Recent Beneficiaries ─────────────────────────────
+                  if (!kIsWeb && _recent.isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ..._recent.asMap().entries.map((entry) {
-                          final i    = entry.key;
-                          final bene = entry.value;
-                          return Column(
-                            children: [
+                        const _SectionHeader(title: 'Recent Beneficiaries'),
+                        TextButton(
+                          onPressed: () => Navigator.pushNamed(context, '/beneficiaries'),
+                          child: const Text('See All',
+                              style: TextStyle(fontSize: 12, color: Color(0xFF00C6FF))),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color:        const Color(0xFF0B1527),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                      ),
+                      child: Column(
+                        children: [
+                          ..._recent.asMap().entries.map((entry) {
+                            final i    = entry.key;
+                            final bene = entry.value;
+                            return Column(children: [
                               ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 4),
@@ -359,17 +443,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Text(
                                     bene.initials,
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color:      Colors.white,
-                                    ),
+                                        fontWeight: FontWeight.w700,
+                                        color:      Colors.white),
                                   ),
                                 ),
                                 title: Text(
                                   bene.displayName,
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize:   14,
-                                  ),
+                                      fontWeight: FontWeight.w600, fontSize: 14),
                                 ),
                                 subtitle: Text(
                                   '${bene.barangay}${bene.purokZone != null ? " • ${bene.purokZone}" : ""}',
@@ -379,24 +460,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ? StatusBadge(status: bene.latestStatus!)
                                     : null,
                                 onTap: () => Navigator.pushNamed(
-                                  context,
-                                  '/beneficiaries/detail',
+                                  context, '/beneficiaries/detail',
                                   arguments: bene,
                                 ).then((_) => _loadAll()),
                               ),
                               if (i < _recent.length - 1)
-                                const Divider(height: 1, indent: 70),
-                            ],
-                          );
-                        }),
-                      ],
+                                Divider(height: 1, indent: 70,
+                                    color: Colors.white.withValues(alpha: 0.06)),
+                            ]);
+                          }),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
 
-              const SizedBox(height: 80),
-            ],
-          ),
+                  const SizedBox(height: 80),
+                ]),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -406,6 +488,163 @@ class _HomeScreenState extends State<HomeScreen> {
 // -------------------------------------------------------
 // SUB-WIDGETS
 // -------------------------------------------------------
+
+class _RoleBadge extends StatelessWidget {
+  final String role;
+  const _RoleBadge({required this.role});
+
+  static const _labels = {
+    'bns':          'BNS',
+    'bhw':          'BHW',
+    'midwife':      'Midwife',
+    'encoder':      'Encoder',
+    'nutritionist': 'Nutritionist',
+    'admin':        'Admin',
+  };
+
+  static const _colors = {
+    'bns':          Color(0xFF00BCD4),
+    'bhw':          Color(0xFF26A69A),
+    'midwife':      Color(0xFF7E57C2),
+    'encoder':      Color(0xFF42A5F5),
+    'nutritionist': Color(0xFF66BB6A),
+    'admin':        Color(0xFFEF5350),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _labels[role] ?? role.toUpperCase();
+    final color = _colors[role] ?? const Color(0xFF8EAFD4);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color:        color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(label,
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+    );
+  }
+}
+
+class _SyncButton extends StatelessWidget {
+  final bool        syncing;
+  final int         unsyncedCount;
+  final String?     lastSyncAt;
+  final VoidCallback onTap;
+
+  const _SyncButton({
+    required this.syncing,
+    required this.unsyncedCount,
+    required this.lastSyncAt,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUnsynced = unsyncedCount > 0;
+    final color = syncing
+        ? const Color(0xFF42A5F5)
+        : hasUnsynced
+            ? const Color(0xFFFFB74D)
+            : const Color(0xFF66BB6A);
+
+    String tooltip;
+    if (syncing) {
+      tooltip = 'Syncing…';
+    } else if (hasUnsynced) {
+      tooltip = '$unsyncedCount unsynced record${unsyncedCount > 1 ? 's' : ''}';
+    } else if (lastSyncAt != null) {
+      final dt  = DateTime.tryParse(lastSyncAt!);
+      final fmt = dt != null
+          ? DateFormat('MMM d, h:mm a').format(dt.toLocal())
+          : lastSyncAt!;
+      tooltip = 'Last synced: $fmt';
+    } else {
+      tooltip = 'Tap to sync';
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: syncing ? null : onTap,
+        child: Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            color:        color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
+          ),
+          child: Stack(alignment: Alignment.center, children: [
+            if (syncing)
+              SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: color),
+              )
+            else
+              Icon(
+                hasUnsynced ? Icons.cloud_upload_rounded : Icons.cloud_done_rounded,
+                color: color, size: 22,
+              ),
+            if (!syncing && hasUnsynced)
+              Positioned(
+                top: 6, right: 6,
+                child: Container(
+                  width: 8, height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFB74D),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniStatCard extends StatelessWidget {
+  final String    label;
+  final String    value;
+  final IconData  icon;
+  final Color     color;
+
+  const _MiniStatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color:        const Color(0xFF0B1527),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(height: 6),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w700, color: color)),
+            const SizedBox(height: 2),
+            Text(label,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF8EAFD4))),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _ValidationAlertCard extends StatelessWidget {
   final int     pendingAssessments;
