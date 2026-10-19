@@ -254,15 +254,21 @@ class _OptTabState extends State<_OptTab> with AutomaticKeepAliveClientMixin {
                         return Card(
                           margin: const EdgeInsets.only(bottom: 6),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          child: ListTile(
-                            dense: true,
-                            title: Text('${a['last_name']}, ${a['first_name']}',
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                            subtitle: Text(
-                              '${a['barangay']}  •  ${a['period']} ${a['assessment_year']}  •  ${a['weight_kg']} kg',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            trailing: StatusBadge(status: status),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            child: Row(children: [
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('${a['last_name']}, ${a['first_name']}',
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${a['barangay']}  •  ${a['weight_kg']} kg  •  ${a['period']} ${a['assessment_year']}',
+                                  style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8)),
+                                ),
+                              ])),
+                              const SizedBox(width: 8),
+                              StatusBadge(status: status),
+                            ]),
                           ),
                         );
                       },
@@ -449,7 +455,11 @@ class _DspTabState extends State<_DspTab> with AutomaticKeepAliveClientMixin {
                                 ],
                                 if (e['notes'] != null && e['notes'].toString().isNotEmpty) ...[
                                   const SizedBox(height: 2),
-                                  Text(e['notes'], style: const TextStyle(fontSize: 11, color: Color(0xFF607896)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  Row(children: [
+                                    const Icon(Icons.notes_rounded, size: 11, color: Color(0xFF607896)),
+                                    const SizedBox(width: 3),
+                                    Expanded(child: Text(e['notes'], style: const TextStyle(fontSize: 11, color: Color(0xFF607896)), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                  ]),
                                 ],
                                 if ((e['monitoring_records'] as List?)?.isNotEmpty == true) ...[
                                   const SizedBox(height: 6),
@@ -762,12 +772,11 @@ class _MnsTab extends StatefulWidget {
   @override State<_MnsTab> createState() => _MnsTabState();
 }
 
-class _MnsTabState extends State<_MnsTab>
-    with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
+class _MnsTabState extends State<_MnsTab> with AutomaticKeepAliveClientMixin {
   @override bool get wantKeepAlive => true;
 
   final _api = ApiService();
-  late TabController _subTabs;
+  String _activeMns = 'vitamina';
 
   int    _year    = DateTime.now().year;
   String _round   = 'April';
@@ -783,14 +792,7 @@ class _MnsTabState extends State<_MnsTab>
   List<dynamic> _completions       = [];
 
   @override
-  void initState() {
-    super.initState();
-    _subTabs = TabController(length: 4, vsync: this);
-    _load();
-  }
-
-  @override
-  void dispose() { _subTabs.dispose(); super.dispose(); }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -885,9 +887,10 @@ class _MnsTabState extends State<_MnsTab>
   Widget build(BuildContext context) {
     super.build(context);
     return Column(children: [
+      // ── Filter bar ──────────────────────────────────────
       Container(
         color: const Color(0xFF1565C0),
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
         child: Row(children: [
           Expanded(child: _DropdownFilter<int>(
             hint: 'Year', value: _year,
@@ -906,105 +909,117 @@ class _MnsTabState extends State<_MnsTab>
           )),
         ]),
       ),
+      // ── Supplement selector chips ────────────────────────
       Container(
         color: const Color(0xFF0D47A1),
-        child: TabBar(
-          controller: _subTabs,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          indicatorColor: Colors.amber,
-          indicatorWeight: 3,
-          tabs: [
-            const Tab(text: 'Vitamin A'),
-            const Tab(text: 'MNP'),
-            const Tab(text: 'LNS-SQ'),
-            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Defaulters'),
-              if (_defaulterItems.isNotEmpty) ...[
-                const SizedBox(width: 5),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                  child: Text('${_defaulterItems.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ])),
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            _MnsChip(
+              label: 'Vitamin A', active: _activeMns == 'vitamina',
+              color: Colors.orange, badge: _vitAEligible.length,
+              onTap: () => setState(() => _activeMns = 'vitamina'),
+            ),
+            const SizedBox(width: 8),
+            _MnsChip(
+              label: 'MNP', active: _activeMns == 'mnp',
+              color: Colors.purple, badge: _mnpNotYet.length,
+              onTap: () => setState(() => _activeMns = 'mnp'),
+            ),
+            const SizedBox(width: 8),
+            _MnsChip(
+              label: 'LNS-SQ', active: _activeMns == 'lnssq',
+              color: Colors.teal, badge: _lnsNotYet.length,
+              onTap: () => setState(() => _activeMns = 'lnssq'),
+            ),
+            const SizedBox(width: 8),
+            _MnsChip(
+              label: 'Needs Attention', active: _activeMns == 'defaulters',
+              color: Colors.red, badge: _defaulterItems.length,
+              onTap: () => setState(() => _activeMns = 'defaulters'),
+            ),
+          ]),
         ),
       ),
+      // ── Content ─────────────────────────────────────────
       Expanded(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                controller: _subTabs,
-                children: [
-                  _MnsSubTab(
-                    type: 'vitamina', items: _vitAItems, notYetItems: _vitAEligible,
-                    heroTag: 'fab_vita',
-                    emptyMsg: 'No Vitamin A records for $_round $_year',
-                    icon: Icons.vaccines, color: Colors.orange,
-                    subtitle: (r) => '${r['barangay'] ?? ''}  •  ${r['dosage_iu'] ?? ''} IU',
-                    trailing: (r) => r['distribution_date'] ?? '',
-                    onRecord: () => _showRecordModal('vitamina'),
-                    onRecordFor: (b) => _showRecordModal('vitamina', initialBeneficiary: Map<String, dynamic>.from(b)),
-                    onRefresh: _load,
-                    onDelete: _deleteVitA,
-                  ),
-                  _MnsSubTab(
-                    type: 'mnp', items: _mnpItems, notYetItems: _mnpNotYet,
-                    heroTag: 'fab_mnp',
-                    emptyMsg: 'No MNP records for $_year',
-                    icon: Icons.medication_outlined, color: Colors.purple,
-                    subtitle: (r) {
-                      final s = r['sachets_distributed'];
-                      return '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}'
-                          '${s != null ? '  •  $s sachets' : ''}';
-                    },
-                    trailing: (r) => r['date_given'] ?? '',
-                    onRecord: () => _showRecordModal('mnp'),
-                    onRecordFor: (b) => _showRecordModal('mnp', initialBeneficiary: Map<String, dynamic>.from(b)),
-                    onRefresh: _load,
-                    onComplete: (id) => _markComplete('mnp', id),
-                    completions: _completions,
-                    onDistributionComplete: () => _markDistributionComplete('mnp'),
-                  ),
-                  _MnsSubTab(
-                    type: 'lnssq', items: _lnsSqItems, notYetItems: _lnsNotYet,
-                    heroTag: 'fab_lnssq',
-                    emptyMsg: 'No LNS-SQ records for $_year',
-                    icon: Icons.local_dining_outlined, color: Colors.teal,
-                    subtitle: (r) {
-                      final s = r['sachets_distributed'];
-                      final w = r['weight_kg'];
-                      return '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}'
-                          '${s != null ? '  •  $s sachets' : ''}'
-                          '${w != null ? '  •  ${w} kg' : ''}';
-                    },
-                    trailing: (r) => r['date_given'] ?? '',
-                    onRecord: () => _showRecordModal('lnssq'),
-                    onRecordFor: (b) => _showRecordModal('lnssq', initialBeneficiary: Map<String, dynamic>.from(b)),
-                    onRefresh: _load,
-                    onComplete: (id) => _markComplete('lnssq', id),
-                    completions: _completions,
-                    onDistributionComplete: () => _markDistributionComplete('lnssq'),
-                    onRecover: (bid, name) => _showLnsRecoverSheet(bid, name),
-                  ),
-                  _MnsDefaulterTab(
-                    items: _defaulterItems,
-                    onRefresh: _load,
-                    onRecord: (bene, type) => _showRecordModal(type, initialBeneficiary: bene),
-                    onReason: (id, supplement, reason) async {
-                      final res = await _api.mnsDefaulterReason({'beneficiary_id': id, 'supplement': supplement, 'reason': reason, 'year': _year});
-                      if (!mounted) return;
-                      _snack(res['message'] ?? 'Done', res['success'] == true);
-                      if (res['success'] == true) _load();
-                    },
-                  ),
-                ],
-              ),
+            : _buildMnsContent(),
       ),
     ]);
+  }
+
+  Widget _buildMnsContent() {
+    switch (_activeMns) {
+      case 'defaulters':
+        return _MnsDefaulterTab(
+          items: _defaulterItems,
+          onRefresh: _load,
+          onRecord: (bene, type) => _showRecordModal(type, initialBeneficiary: bene),
+          onReason: (id, supplement, reason) async {
+            final res = await _api.mnsDefaulterReason({'beneficiary_id': id, 'supplement': supplement, 'reason': reason, 'year': _year});
+            if (!mounted) return;
+            _snack(res['message'] ?? 'Done', res['success'] == true);
+            if (res['success'] == true) _load();
+          },
+        );
+      case 'mnp':
+        return _MnsSubTab(
+          type: 'mnp', items: _mnpItems, notYetItems: _mnpNotYet,
+          heroTag: 'fab_mnp',
+          emptyMsg: 'No MNP records for $_year',
+          icon: Icons.medication_outlined, color: Colors.purple,
+          subtitle: (r) {
+            final s = r['sachets_distributed'];
+            return '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}'
+                '${s != null ? '  •  $s sachets' : ''}';
+          },
+          trailing: (r) => r['date_given'] ?? '',
+          onRecord: () => _showRecordModal('mnp'),
+          onRecordFor: (b) => _showRecordModal('mnp', initialBeneficiary: Map<String, dynamic>.from(b)),
+          onRefresh: _load,
+          onComplete: (id) => _markComplete('mnp', id),
+          completions: _completions,
+          onDistributionComplete: () => _markDistributionComplete('mnp'),
+        );
+      case 'lnssq':
+        return _MnsSubTab(
+          type: 'lnssq', items: _lnsSqItems, notYetItems: _lnsNotYet,
+          heroTag: 'fab_lnssq',
+          emptyMsg: 'No LNS-SQ records for $_year',
+          icon: Icons.local_dining_outlined, color: Colors.teal,
+          subtitle: (r) {
+            final s = r['sachets_distributed'];
+            final w = r['weight_kg'];
+            return '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}'
+                '${s != null ? '  •  $s sachets' : ''}'
+                '${w != null ? '  •  ${w} kg' : ''}';
+          },
+          trailing: (r) => r['date_given'] ?? '',
+          onRecord: () => _showRecordModal('lnssq'),
+          onRecordFor: (b) => _showRecordModal('lnssq', initialBeneficiary: Map<String, dynamic>.from(b)),
+          onRefresh: _load,
+          onComplete: (id) => _markComplete('lnssq', id),
+          completions: _completions,
+          onDistributionComplete: () => _markDistributionComplete('lnssq'),
+          onRecover: (bid, name) => _showLnsRecoverSheet(bid, name),
+        );
+      default: // 'vitamina'
+        return _MnsSubTab(
+          type: 'vitamina', items: _vitAItems, notYetItems: _vitAEligible,
+          heroTag: 'fab_vita',
+          emptyMsg: 'No Vitamin A records for $_round $_year',
+          icon: Icons.vaccines, color: Colors.orange,
+          subtitle: (r) => '${r['barangay'] ?? ''}  •  ${r['dosage_iu'] ?? ''} IU',
+          trailing: (r) => r['distribution_date'] ?? '',
+          onRecord: () => _showRecordModal('vitamina'),
+          onRecordFor: (b) => _showRecordModal('vitamina', initialBeneficiary: Map<String, dynamic>.from(b)),
+          onRefresh: _load,
+          onDelete: _deleteVitA,
+        );
+    }
   }
 }
 
@@ -1262,6 +1277,62 @@ class _MnsSubTab extends StatelessWidget {
       Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: c)),
     ]),
   );
+}
+
+// ─────────────────────────────────────────────────────────
+// MNS SUPPLEMENT SELECTOR CHIP
+// ─────────────────────────────────────────────────────────
+class _MnsChip extends StatelessWidget {
+  final String     label;
+  final bool       active;
+  final Color      color;
+  final int        badge;
+  final VoidCallback onTap;
+
+  const _MnsChip({
+    required this.label, required this.active,
+    required this.color, required this.badge, required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: active ? color : Colors.white.withValues(alpha: 0.13),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: active ? color : Colors.white30),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+            ),
+          ),
+          if (badge > 0) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: active ? Colors.white.withValues(alpha: 0.30) : color,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$badge',
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────
