@@ -5,6 +5,8 @@ import '../../services/auth_provider.dart';
 import '../../services/local_db_service.dart';
 import '../../widgets/status_badge.dart';
 import '../../constants/barangays.dart';
+import '../../models/beneficiary_model.dart';
+import '../beneficiaries/beneficiary_detail_screen.dart';
 import '../dsp/dsp_monitoring_form_screen.dart';
 
 class ProgramsScreen extends StatefulWidget {
@@ -254,21 +256,27 @@ class _OptTabState extends State<_OptTab> with AutomaticKeepAliveClientMixin {
                         return Card(
                           margin: const EdgeInsets.only(bottom: 6),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            child: Row(children: [
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text('${a['last_name']}, ${a['first_name']}',
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                                const SizedBox(height: 3),
-                                Text(
-                                  '${a['barangay']}  •  ${a['weight_kg']} kg  •  ${a['period']} ${a['assessment_year']}',
-                                  style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8)),
-                                ),
-                              ])),
-                              const SizedBox(width: 8),
-                              StatusBadge(status: status),
-                            ]),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => _openBeneficiary(context, a),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              child: Row(children: [
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text('${a['last_name']}, ${a['first_name']}',
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${a['barangay']}  •  ${a['weight_kg']} kg  •  ${a['period']} ${a['assessment_year']}',
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8)),
+                                  ),
+                                ])),
+                                const SizedBox(width: 8),
+                                StatusBadge(status: status),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF4A6080)),
+                              ]),
+                            ),
                           ),
                         );
                       },
@@ -409,22 +417,28 @@ class _DspTabState extends State<_DspTab> with AutomaticKeepAliveClientMixin {
                             child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Row(children: [
-                                  Expanded(child: Text(
-                                    '${e['last_name']}, ${e['first_name']}',
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                                  )),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: _statusColor(status).withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: _statusColor(status).withValues(alpha: 0.4)),
+                                InkWell(
+                                  onTap: () => _openBeneficiary(context, e),
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Row(children: [
+                                    Expanded(child: Text(
+                                      '${e['last_name']}, ${e['first_name']}',
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                    )),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: _statusColor(status).withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: _statusColor(status).withValues(alpha: 0.4)),
+                                      ),
+                                      child: Text(status,
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _statusColor(status))),
                                     ),
-                                    child: Text(status,
-                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _statusColor(status))),
-                                  ),
-                                ]),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.chevron_right_rounded, size: 15, color: Color(0xFF4A6080)),
+                                  ]),
+                                ),
                                 const SizedBox(height: 4),
                                 Row(children: [
                                   const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF607896)),
@@ -1130,6 +1144,7 @@ class _MnsSubTab extends StatelessWidget {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        clipBehavior: Clip.antiAlias,
                         child: ListTile(
                           contentPadding: const EdgeInsets.fromLTRB(14, 4, 8, 4),
                           leading: CircleAvatar(
@@ -1140,6 +1155,7 @@ class _MnsSubTab extends StatelessWidget {
                           title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                           subtitle: Text('$brgy  •  $age mo',
                               style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
+                          onTap: () => _openBeneficiary(context, r),
                           trailing: onRecordFor != null
                               ? TextButton(
                                   style: TextButton.styleFrom(
@@ -1173,7 +1189,10 @@ class _MnsSubTab extends StatelessWidget {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        child: Padding(
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () => _openBeneficiary(context, r),
+                          child: Padding(
                           padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
                           child: Row(children: [
                             CircleAvatar(
@@ -1250,6 +1269,7 @@ class _MnsSubTab extends StatelessWidget {
                               ]),
                           ]),
                         ),
+                      ),
                       );
                     }),
                   ],
@@ -1734,8 +1754,13 @@ class _MnsDefaulterTab extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
-                        Expanded(child: Text(name,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
+                        Expanded(child: GestureDetector(
+                          onTap: () => _openBeneficiary(ctx, r),
+                          child: Text(name,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14,
+                                  color: Color(0xFF90CAF9), decoration: TextDecoration.underline,
+                                  decorationColor: Color(0xFF90CAF9))),
+                        )),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -2193,6 +2218,36 @@ class _GenericEnrollModalState extends State<_GenericEnrollModal> {
 // ─────────────────────────────────────────────────────────
 // SHARED WIDGETS & HELPERS
 // ─────────────────────────────────────────────────────────
+
+/// Navigate to a beneficiary's profile.
+/// Accepts a record map — tries [beneficiary_id] then [id] as the key.
+Future<void> _openBeneficiary(BuildContext context, Map<String, dynamic> record) async {
+  final id = int.tryParse((record['beneficiary_id'] ?? record['id'])?.toString() ?? '');
+  if (id == null || id == 0) return;
+
+  final local = LocalDbService();
+  final api   = ApiService();
+
+  BeneficiaryModel? model;
+  try {
+    final row = await local.getBeneficiaryById(id);
+    if (row != null) {
+      model = BeneficiaryModel.fromJson(row);
+    } else {
+      final res = await api.getBeneficiary(id);
+      if (res['success'] == true) {
+        final data = res['data'];
+        final b = data is Map ? data['beneficiary'] ?? data : null;
+        if (b != null) model = BeneficiaryModel.fromJson(Map<String, dynamic>.from(b));
+      }
+    }
+  } catch (_) {}
+
+  if (model == null || !context.mounted) return;
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => BeneficiaryDetailScreen(beneficiary: model!),
+  ));
+}
 
 Widget _emptyState(IconData icon, String msg) => Center(child: Column(
   mainAxisAlignment: MainAxisAlignment.center,
