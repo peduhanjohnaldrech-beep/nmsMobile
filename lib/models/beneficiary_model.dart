@@ -79,17 +79,24 @@ class BeneficiaryModel {
     this.latestZscore,
   });
 
+  static String _tc(String s) => s
+      .toLowerCase()
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+
   /// e.g. "Dela Cruz, Juan M."
   String get displayName {
     final mi = middleName != null && middleName!.isNotEmpty
         ? ' ${middleName![0].toUpperCase()}.'
         : '';
-    final sfx = suffix != null && suffix!.isNotEmpty ? ' $suffix' : '';
-    return '$lastName, $firstName$mi$sfx';
+    final sfx = suffix != null && suffix!.isNotEmpty ? ' ${suffix!.toUpperCase()}' : '';
+    return '${_tc(lastName)}, ${_tc(firstName)}$mi$sfx';
   }
 
   /// Full name for display in forms
-  String get fullName => '$firstName${middleName != null ? ' $middleName' : ''} $lastName';
+  String get fullName =>
+      '${_tc(firstName)}${middleName != null && middleName!.isNotEmpty ? ' ${_tc(middleName!)}' : ''} ${_tc(lastName)}';
 
   /// Initials for avatar
   String get initials {
