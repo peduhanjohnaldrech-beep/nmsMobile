@@ -25,7 +25,7 @@ class _ProgramsScreenState extends State<ProgramsScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this); // placeholder, rebuilt after load
+    _tabs = TabController(length: 2, vsync: this); // placeholder, rebuilt after load
     _loadPrograms();
   }
 
@@ -43,7 +43,7 @@ class _ProgramsScreenState extends State<ProgramsScreen> with SingleTickerProvid
             _customPrograms = custom;
             _loadingPrograms = false;
           });
-          final count = 3 + (custom.isNotEmpty ? 1 : 0);
+          final count = 2 + (custom.isNotEmpty ? 1 : 0);
           _tabs.dispose();
           _tabs = TabController(length: count, vsync: this);
           setState(() {});
@@ -76,9 +76,8 @@ class _ProgramsScreenState extends State<ProgramsScreen> with SingleTickerProvid
           indicatorWeight: 3,
           isScrollable: hasCustom,
           tabs: [
-            const Tab(icon: Icon(Icons.monitor_weight_outlined), text: 'OPT'),
-            const Tab(icon: Icon(Icons.restaurant_outlined),     text: 'DSP'),
-            const Tab(icon: Icon(Icons.vaccines_outlined),       text: 'MNS'),
+            const Tab(icon: Icon(Icons.restaurant_outlined), text: 'DSP'),
+            const Tab(icon: Icon(Icons.vaccines_outlined),   text: 'MNS'),
             if (hasCustom)
               const Tab(icon: Icon(Icons.apps_rounded), text: 'Others'),
           ],
@@ -89,201 +88,12 @@ class _ProgramsScreenState extends State<ProgramsScreen> with SingleTickerProvid
           : TabBarView(
               controller: _tabs,
               children: [
-                const _OptTab(),
                 const _DspTab(),
                 const _MnsTab(),
                 if (hasCustom) _OthersTab(programs: _customPrograms),
               ],
             ),
     );
-  }
-}
-
-// ─────────────────────────────────────────────────────────
-// OPT TAB
-// ─────────────────────────────────────────────────────────
-class _OptTab extends StatefulWidget {
-  const _OptTab();
-  @override
-  State<_OptTab> createState() => _OptTabState();
-}
-
-class _OptTabState extends State<_OptTab> with AutomaticKeepAliveClientMixin {
-  @override bool get wantKeepAlive => true;
-
-  final _api = ApiService();
-  int     _year    = DateTime.now().year;
-  String? _period;
-  String? _barangay;
-  String? _purok;
-  bool    _loading = false;
-  List<dynamic>        _items  = [];
-  Map<String, dynamic> _counts = {};
-  List<String>         _puroks = [];
-
-  final _years = [DateTime.now().year, DateTime.now().year - 1, DateTime.now().year - 2];
-
-  @override
-  void initState() { super.initState(); _load(); }
-
-  Future<void> _loadPuroks(String barangay) async {
-    try {
-      final res = await _api.getPuroks(barangay);
-      if (res['success'] == true && mounted) {
-        setState(() => _puroks = List<String>.from(res['data']['puroks'] ?? []));
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    final user = context.read<AuthProvider>().user;
-    final scopedBrgy = user?.isScopedToBarangay == true ? user?.barangay : null;
-    final brgy = scopedBrgy ?? _barangay;
-    try {
-      final result = await _api.getPrograms(
-        type: 'opt', year: _year, period: _period, barangay: brgy, purok: _purok,
-      );
-      if (result['success'] == true && mounted) {
-        final data = result['data'] as Map<String, dynamic>;
-        setState(() {
-          _items  = List.from(data['assessments'] ?? []);
-          _counts = Map<String, dynamic>.from(data['counts'] ?? {});
-        });
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _loading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    final user       = context.read<AuthProvider>().user;
-    final isScoped   = user?.isScopedToBarangay == true;
-
-    return Column(children: [
-      Container(
-        color: const Color(0xFF1565C0),
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        child: Column(children: [
-          Row(children: [
-            Expanded(child: _DropdownFilter<int>(
-              hint: 'Year', value: _year,
-              items: _years.map((y) => DropdownMenuItem(value: y, child: Text(y.toString()))).toList(),
-              onChanged: (v) { if (v != null) setState(() => _year = v); _load(); },
-            )),
-            const SizedBox(width: 8),
-            Expanded(child: _DropdownFilter<String>(
-              hint: 'All Periods', value: _period,
-              items: const [
-                DropdownMenuItem(value: 'January', child: Text('January')),
-                DropdownMenuItem(value: 'July',    child: Text('July')),
-              ],
-              onChanged: (v) { setState(() => _period = v); _load(); },
-            )),
-          ]),
-          if (!isScoped) ...[
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: _DropdownFilter<String>(
-                hint: 'All Barangays', value: _barangay,
-                items: kBarangays.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
-                onChanged: (v) {
-                  setState(() { _barangay = v; _purok = null; _puroks = []; });
-                  _load();
-                  if (v != null) _loadPuroks(v);
-                },
-              )),
-              if (_barangay != null) ...[
-                const SizedBox(width: 8),
-                Expanded(child: _DropdownFilter<String>(
-                  hint: 'All Puroks', value: _purok,
-                  items: _puroks.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-                  onChanged: (v) { setState(() => _purok = v); _load(); },
-                )),
-              ],
-            ]),
-          ],
-          if (_barangay != null || _purok != null) ...[
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: () { setState(() { _barangay = null; _purok = null; _puroks = []; }); _load(); },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.filter_alt_off_rounded, size: 13, color: Colors.white),
-                    SizedBox(width: 4),
-                    Text('Clear Filters', style: TextStyle(color: Colors.white, fontSize: 11)),
-                  ]),
-                ),
-              ),
-            ),
-          ],
-        ]),
-      ),
-      if (_counts.isNotEmpty)
-        Container(
-          color: const Color(0xFF0B1527),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(children: [
-            _CountChip('SUW',    (_counts['SUW']    ?? 0).toString(), Colors.red),
-            const SizedBox(width: 6),
-            _CountChip('UW',     (_counts['UW']     ?? 0).toString(), Colors.orange),
-            const SizedBox(width: 6),
-            _CountChip('Normal', (_counts['Normal'] ?? 0).toString(), Colors.green),
-            const SizedBox(width: 6),
-            _CountChip('OW',     (_counts['OW']     ?? 0).toString(), Colors.amber.shade700),
-            const SizedBox(width: 6),
-            _CountChip('OB',     (_counts['OB']     ?? 0).toString(), Colors.purple),
-          ]),
-        ),
-      Expanded(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _items.isEmpty
-                ? _emptyState(Icons.monitor_weight_outlined, 'No OPT assessments found')
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
-                      itemCount: _items.length,
-                      itemBuilder: (_, i) {
-                        final a = _items[i];
-                        final status = a['nutritional_status'] ?? 'Normal';
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () => _openBeneficiary(context, a),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              child: Row(children: [
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text('${a['last_name']}, ${a['first_name']}',
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    '${a['barangay']}  •  ${a['weight_kg']} kg  •  ${a['period']} ${a['assessment_year']}',
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8)),
-                                  ),
-                                ])),
-                                const SizedBox(width: 8),
-                                StatusBadge(status: status),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF4A6080)),
-                              ]),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-      ),
-    ]);
   }
 }
 
@@ -1081,7 +891,14 @@ class _MnsSubTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = notYetItems.length + items.length;
+    final total   = notYetItems.length + items.length;
+    final given   = items.length;
+
+    // Unified sorted checklist
+    final allRows = <Map<String, dynamic>>[
+      ...items.map((r)       => {'_given': true,  ...Map<String, dynamic>.from(r)}),
+      ...notYetItems.map((r) => {'_given': false, ...Map<String, dynamic>.from(r)}),
+    ]..sort((a, b) => (a['last_name']?.toString() ?? '').compareTo(b['last_name']?.toString() ?? ''));
 
     return Stack(children: [
       RefreshIndicator(
@@ -1129,87 +946,126 @@ class _MnsSubTab extends StatelessWidget {
                     }
                     return const SizedBox.shrink();
                   }),
-                  // ── Not Yet Received section ──────────────────────
-                  if (notYetItems.isNotEmpty) ...[
-                    _sectionHeader(
-                      '${notYetItems.length} Not Yet Received',
-                      Colors.orange,
-                      Icons.pending_actions_rounded,
+
+                  // ── Progress summary ──────────────────────────────
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: color.withValues(alpha: 0.25)),
                     ),
-                    const SizedBox(height: 6),
-                    ...notYetItems.map((r) {
-                      final name = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
-                      final age  = r['age_months'] ?? '';
-                      final brgy = r['barangay'] ?? '';
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Icon(icon, size: 16, color: color),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$given of $total children covered',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+                        ),
+                        const Spacer(),
+                        Text(
+                          total > 0 ? '${(given / total * 100).round()}%' : '0%',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
+                        ),
+                      ]),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: total > 0 ? given / total : 0,
+                          backgroundColor: color.withValues(alpha: 0.15),
+                          color: color,
+                          minHeight: 6,
+                        ),
+                      ),
+                    ]),
+                  ),
+
+                  // ── Unified checklist ─────────────────────────────
+                  ...allRows.map((r) {
+                    final isGiven = r['_given'] as bool;
+                    final id      = r['id'] as int? ?? 0;
+                    final beneId  = r['beneficiary_id'] as int? ?? (r['id'] as int? ?? 0);
+                    final name    = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
+                    final brgy    = r['barangay'] ?? '';
+                    final age     = r['age_months'] ?? '';
+
+                    if (!isGiven) {
+                      // ── Pending row
                       return Card(
                         margin: const EdgeInsets.only(bottom: 6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         clipBehavior: Clip.antiAlias,
                         child: ListTile(
-                          contentPadding: const EdgeInsets.fromLTRB(14, 4, 8, 4),
+                          contentPadding: const EdgeInsets.fromLTRB(14, 2, 8, 2),
                           leading: CircleAvatar(
                             backgroundColor: Colors.orange.withValues(alpha: 0.12),
                             radius: 18,
-                            child: const Icon(Icons.person_outlined, color: Colors.orange, size: 18),
+                            child: const Icon(Icons.hourglass_top_rounded, color: Colors.orange, size: 16),
                           ),
                           title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          subtitle: Text('$brgy  •  $age mo',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
+                          subtitle: Text(
+                            '$brgy${age != '' ? '  •  $age mo' : ''}',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8)),
+                          ),
                           onTap: () => _openBeneficiary(context, r),
                           trailing: onRecordFor != null
                               ? TextButton(
                                   style: TextButton.styleFrom(
                                     foregroundColor: color,
-                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    backgroundColor: color.withValues(alpha: 0.08),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
                                     minimumSize: const Size(0, 32),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                   ),
                                   onPressed: () => onRecordFor!(r),
-                                  child: const Text('Record', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                  child: const Text('Record', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                                 )
                               : null,
                         ),
                       );
-                    }),
-                    const SizedBox(height: 12),
-                  ],
+                    }
 
-                  // ── Records Given section ─────────────────────────
-                  if (items.isNotEmpty) ...[
-                    _sectionHeader(
-                      '${items.length} Records Given',
-                      color,
-                      Icons.check_circle_outline_rounded,
-                    ),
-                    const SizedBox(height: 6),
-                    ...items.map((r) {
-                      final id        = r['id'] as int? ?? 0;
-                      final name      = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
-                      final completed = (r['completed_routine'] == 1 || r['completed_routine'] == '1');
+                    // ── Given row
+                    final completed = (r['completed_routine'] == 1 || r['completed_routine'] == '1');
+                    final dateStr   = (r['distribution_date'] ?? r['date_given'] ?? '').toString();
+                    final shortDate = dateStr.length >= 10 ? dateStr.substring(0, 10) : dateStr;
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () => _openBeneficiary(context, r),
-                          child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () => _openBeneficiary(context, r),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
                           child: Row(children: [
-                            CircleAvatar(
-                              backgroundColor: color.withValues(alpha: 0.15),
-                              radius: 18,
-                              child: Icon(icon, color: color, size: 16),
+                            Container(
+                              width: 36, height: 36,
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.check_rounded, color: Colors.green, size: 18),
                             ),
                             const SizedBox(width: 10),
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                              Text(subtitle(r), style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8))),
-                              Text(trailing(r), style: const TextStyle(fontSize: 11, color: Color(0xFF607896))),
+                              Text(
+                                '$brgy${age != '' ? '  •  $age mo' : ''}  •  $shortDate',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF90A4B8)),
+                              ),
+                              if (subtitle(r).isNotEmpty)
+                                Text(subtitle(r), style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.8))),
                             ])),
                             if (type == 'vitamina' && onDelete != null)
                               IconButton(
                                 icon: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red.shade400),
                                 tooltip: 'Delete',
+                                padding: const EdgeInsets.all(6),
+                                constraints: const BoxConstraints(),
                                 onPressed: () async {
                                   final ok = await showDialog<bool>(
                                     context: context,
@@ -1238,10 +1094,7 @@ class _MnsSubTab extends StatelessWidget {
                                     tooltip: 'Mark Recovered',
                                     padding: const EdgeInsets.all(4),
                                     constraints: const BoxConstraints(),
-                                    onPressed: () => onRecover!(
-                                      r['beneficiary_id'] as int? ?? id,
-                                      name,
-                                    ),
+                                    onPressed: () => onRecover!(beneId, name),
                                   ),
                                 completed
                                     ? Container(
@@ -1251,10 +1104,10 @@ class _MnsSubTab extends StatelessWidget {
                                           borderRadius: BorderRadius.circular(8),
                                           border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
                                         ),
-                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                          const Icon(Icons.check_rounded, size: 12, color: Colors.green),
-                                          const SizedBox(width: 3),
-                                          const Text('Done', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w700)),
+                                        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                          Icon(Icons.check_rounded, size: 12, color: Colors.green),
+                                          SizedBox(width: 3),
+                                          Text('Done', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w700)),
                                         ]),
                                       )
                                     : TextButton(
@@ -1270,9 +1123,8 @@ class _MnsSubTab extends StatelessWidget {
                           ]),
                         ),
                       ),
-                      );
-                    }),
-                  ],
+                    );
+                  }),
                 ],
               ),
       ),
@@ -1288,15 +1140,6 @@ class _MnsSubTab extends StatelessWidget {
       ),
     ]);
   }
-
-  Widget _sectionHeader(String title, Color c, IconData ico) => Padding(
-    padding: const EdgeInsets.only(bottom: 2),
-    child: Row(children: [
-      Icon(ico, size: 14, color: c),
-      const SizedBox(width: 6),
-      Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: c)),
-    ]),
-  );
 }
 
 // ─────────────────────────────────────────────────────────
