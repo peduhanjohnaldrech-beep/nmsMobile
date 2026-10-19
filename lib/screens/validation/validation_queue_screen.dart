@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/beneficiary_model.dart';
 import '../../services/api_service.dart';
 import '../beneficiaries/beneficiary_detail_screen.dart';
-import '../beneficiaries/submit_to_admin_screen.dart';
+
 
 class ValidationQueueScreen extends StatefulWidget {
   const ValidationQueueScreen({super.key});
@@ -30,7 +30,6 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
   final Set<int> _validatingBeneficiaries = {};
   final Set<int> _validatingDsp           = {};
 
-  int _readyToSubmitCount = 0;
 
   @override
   void initState() {
@@ -68,16 +67,6 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
     }
-    _loadReadyToSubmitCount();
-  }
-
-  Future<void> _loadReadyToSubmitCount() async {
-    try {
-      final res = await _api.getReadyToSubmit();
-      if (!mounted) return;
-      final list = res['data']?['beneficiaries'] as List? ?? [];
-      setState(() => _readyToSubmitCount = list.length);
-    } catch (_) {}
   }
 
   // ── INDIVIDUAL ACTIONS ──────────────────────────────────
@@ -508,19 +497,6 @@ class _State extends State<ValidationQueueScreen> with SingleTickerProviderState
           ],
         ),
       ),
-      floatingActionButton: !_loading && _tabs.index == 1 && _readyToSubmitCount > 0
-          ? FloatingActionButton.extended(
-              heroTag: 'fab_submit_admin',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SubmitToAdminScreen()),
-              ).then((_) => _loadReadyToSubmitCount()),
-              icon: const Icon(Icons.send_rounded),
-              label: Text('Submit to Admin ($_readyToSubmitCount)'),
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            )
-          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
