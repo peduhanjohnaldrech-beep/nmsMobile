@@ -582,6 +582,12 @@ class ApiService {
     return _decode(res);
   }
 
+  Future<Map<String, dynamic>> lnsRecover(Map<String, dynamic> data) async {
+    final base = await _baseUrl();
+    final res = await _client.post(Uri.parse('$base/programs/mns/lnssq/recover'), headers: await _headers(), body: jsonEncode(data)).timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
   Future<Map<String, dynamic>> mnsDefaulterReason(Map<String, dynamic> data) async {
     final base = await _baseUrl();
     final res = await _client.post(Uri.parse('$base/programs/mns/defaulter/reason'), headers: await _headers(), body: jsonEncode(data)).timeout(const Duration(seconds: 15));

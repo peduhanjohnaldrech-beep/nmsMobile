@@ -852,6 +852,20 @@ class _MnsTabState extends State<_MnsTab>
     if (res['success'] == true) _load();
   }
 
+  void _showLnsRecoverSheet(int beneficiaryId, String name) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _LnsRecoverSheet(
+        beneficiaryId: beneficiaryId,
+        name: name,
+        year: _year,
+        onSaved: () { _load(); },
+      ),
+    );
+  }
+
   void _snack(String msg, bool ok) => ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(msg), backgroundColor: ok ? Colors.green : Colors.red, behavior: SnackBarBehavior.floating));
 
@@ -960,8 +974,10 @@ class _MnsTabState extends State<_MnsTab>
                     icon: Icons.local_dining_outlined, color: Colors.teal,
                     subtitle: (r) {
                       final s = r['sachets_distributed'];
+                      final w = r['weight_kg'];
                       return '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}'
-                          '${s != null ? '  •  $s sachets' : ''}';
+                          '${s != null ? '  •  $s sachets' : ''}'
+                          '${w != null ? '  •  ${w} kg' : ''}';
                     },
                     trailing: (r) => r['date_given'] ?? '',
                     onRecord: () => _showRecordModal('lnssq'),
@@ -970,6 +986,7 @@ class _MnsTabState extends State<_MnsTab>
                     onComplete: (id) => _markComplete('lnssq', id),
                     completions: _completions,
                     onDistributionComplete: () => _markDistributionComplete('lnssq'),
+                    onRecover: (bid, name) => _showLnsRecoverSheet(bid, name),
                   ),
                   _MnsDefaulterTab(
                     items: _defaulterItems,
@@ -1005,10 +1022,11 @@ class _MnsSubTab extends StatelessWidget {
   final VoidCallback                  onRecord;
   final void Function(dynamic)?       onRecordFor;   // quick-record from not-yet list
   final Future<void> Function()       onRefresh;
-  final Future<void> Function(int)?   onDelete;
-  final Future<void> Function(int)?   onComplete;
-  final List<dynamic>                 completions;
-  final Future<void> Function()?      onDistributionComplete;
+  final Future<void> Function(int)?                   onDelete;
+  final Future<void> Function(int)?                   onComplete;
+  final List<dynamic>                                 completions;
+  final Future<void> Function()?                      onDistributionComplete;
+  final void Function(int beneficiaryId, String name)? onRecover;
 
   const _MnsSubTab({
     required this.type,
@@ -1027,6 +1045,7 @@ class _MnsSubTab extends StatelessWidget {
     this.onComplete,
     this.completions = const [],
     this.onDistributionComplete,
+    this.onRecover,
   });
 
   @override
@@ -1176,29 +1195,42 @@ class _MnsSubTab extends StatelessWidget {
                                 },
                               )
                             else if (type != 'vitamina' && onComplete != null)
-                              completed
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
-                                      ),
-                                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                        const Icon(Icons.check_rounded, size: 12, color: Colors.green),
-                                        const SizedBox(width: 3),
-                                        const Text('Done', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w700)),
-                                      ]),
-                                    )
-                                  : TextButton(
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: color,
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        minimumSize: const Size(0, 32),
-                                      ),
-                                      onPressed: () => onComplete!(id),
-                                      child: const Text('Complete', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                              Row(mainAxisSize: MainAxisSize.min, children: [
+                                if (type == 'lnssq' && onRecover != null)
+                                  IconButton(
+                                    icon: const Icon(Icons.favorite_border_rounded, size: 18, color: Colors.green),
+                                    tooltip: 'Mark Recovered',
+                                    padding: const EdgeInsets.all(4),
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => onRecover!(
+                                      r['beneficiary_id'] as int? ?? id,
+                                      name,
                                     ),
+                                  ),
+                                completed
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                                        ),
+                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                          const Icon(Icons.check_rounded, size: 12, color: Colors.green),
+                                          const SizedBox(width: 3),
+                                          const Text('Done', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w700)),
+                                        ]),
+                                      )
+                                    : TextButton(
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: color,
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          minimumSize: const Size(0, 32),
+                                        ),
+                                        onPressed: () => onComplete!(id),
+                                        child: const Text('Complete', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                      ),
+                              ]),
                           ]),
                         ),
                       );
@@ -1452,6 +1484,64 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
         TextField(controller: _notesCtrl,
             decoration: const InputDecoration(labelText: 'Notes (optional)', border: OutlineInputBorder()), maxLines: 2),
       ],
+    ],
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// LNS RECOVERY SHEET
+// ─────────────────────────────────────────────────────────
+class _LnsRecoverSheet extends StatefulWidget {
+  final int          beneficiaryId;
+  final String       name;
+  final int          year;
+  final VoidCallback onSaved;
+  const _LnsRecoverSheet({required this.beneficiaryId, required this.name, required this.year, required this.onSaved});
+  @override State<_LnsRecoverSheet> createState() => _LnsRecoverSheetState();
+}
+
+class _LnsRecoverSheetState extends State<_LnsRecoverSheet> {
+  final _api       = ApiService();
+  final _dateCtrl  = TextEditingController(text: DateTime.now().toIso8601String().substring(0, 10));
+  final _notesCtrl = TextEditingController();
+  bool _saving = false;
+
+  @override void dispose() { _dateCtrl.dispose(); _notesCtrl.dispose(); super.dispose(); }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final res = await _api.lnsRecover({
+      'beneficiary_id': widget.beneficiaryId,
+      'year': widget.year,
+      'recovery_date': _dateCtrl.text,
+      'notes': _notesCtrl.text,
+    });
+    if (!mounted) return;
+    setState(() => _saving = false);
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(res['message'] ?? 'Done'),
+      backgroundColor: res['success'] == true ? Colors.green : Colors.red,
+      behavior: SnackBarBehavior.floating,
+    ));
+    if (res['success'] == true) widget.onSaved();
+  }
+
+  @override
+  Widget build(BuildContext context) => _ModalSheet(
+    title: 'Mark as Recovered', saving: _saving, onSave: _save,
+    saveLabel: 'Confirm Recovery', saveColor: Colors.green,
+    children: [
+      Text(widget.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+      const SizedBox(height: 4),
+      const Text('Marking as recovered removes this child from the LNS-SQ not-yet-received list for this year.',
+          style: TextStyle(fontSize: 12, color: Color(0xFF90A4B8))),
+      const SizedBox(height: 16),
+      _dateField(context, _dateCtrl, 'Recovery / Graduation Date'),
+      const SizedBox(height: 12),
+      TextField(controller: _notesCtrl,
+          decoration: const InputDecoration(labelText: 'Notes (optional)', border: OutlineInputBorder(),
+              hintText: 'e.g. Reached normal weight, graduated program'), maxLines: 2),
     ],
   );
 }
