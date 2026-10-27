@@ -111,10 +111,19 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
       return;
     }
 
+    // BNS can only assess children 0–59 months
+    final user = context.read<AuthProvider>().user;
+    if (user?.isBns == true) {
+      final ageMonths = _ageInMonths(_selectedBene!.dateOfBirth);
+      if (ageMonths < 0 || ageMonths > 59) {
+        _showError('BNS can only record assessments for children aged 0–59 months. This child is $ageMonths months old.');
+        return;
+      }
+    }
+
 
     setState(() => _saving = true);
 
-    final user = context.read<AuthProvider>().user;
     final data = {
       'beneficiary_id':  _selectedBene!.id,
       'assessment_date': DateFormat('yyyy-MM-dd').format(_date),
@@ -123,7 +132,7 @@ class _AssessmentFormScreenState extends State<AssessmentFormScreen> {
       'muac_cm':   double.tryParse(_muacCtrl.text.trim()) ?? 0,
       'period':          _period,
       'assessment_year': _year,
-      'assessed_by':     user?.fullName,
+      'assessed_by':     context.read<AuthProvider>().user?.fullName,
       if (_remarksCtrl.text.trim().isNotEmpty)
         'remarks': _remarksCtrl.text.trim(),
     };
