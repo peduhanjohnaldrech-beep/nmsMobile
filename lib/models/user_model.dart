@@ -36,7 +36,7 @@ class UserModel {
   };
 
   // Modules a midwife is allowed — enforced regardless of stored permissions
-  static const _midwifeAllowed = {'validation', 'beneficiaries'};
+  static const _midwifeAllowed = {'validation', 'beneficiaries', 'assessments', 'reports'};
 
   bool hasPermission(String module) {
     if (isAdmin || isNutritionist) return true;

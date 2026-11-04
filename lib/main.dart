@@ -22,7 +22,6 @@ import 'screens/reports/reports_full_screen.dart';
 import 'screens/activity/activity_screen.dart';
 import 'screens/beneficiaries/beneficiary_trash_screen.dart';
 import 'screens/beneficiaries/beneficiary_followup_screen.dart';
-import 'screens/assessments/assessment_batch_screen.dart';
 import 'screens/admin/user_management_screen.dart';
 import 'screens/admin/program_manager_screen.dart';
 import 'screens/help/help_screen.dart';
@@ -144,8 +143,8 @@ class NmsApp extends StatelessWidget {
         '/beneficiaries/trash':    (_) => const BeneficiaryTrashScreen(),
         '/beneficiaries/followup': (_) => const BeneficiaryFollowupScreen(),
         '/assessments':            (_) => const MainShell(initialIndex: 2),
+        '/assessments/batch':      (_) => const AssessmentFormScreen(),
         '/assessments/create':     (_) => const AssessmentFormScreen(),
-        '/assessments/batch':      (_) => const AssessmentBatchScreen(),
         '/programs':               (_) => const MainShell(initialIndex: 3),
         '/dispensing':             (_) => const DispensingScreen(),
         '/dispensing/create':      (_) => const DispensingFormScreen(),
@@ -652,7 +651,6 @@ class _NmsSidebarState extends State<_NmsSidebar> {
                       const _NavSectionLabel('ASSESSMENTS'),
                       _NavItem(icon: Icons.assignment_outlined, label: 'Assessments',         index: 2, current: widget.currentIndex, onTap: widget.onNavigate),
                       _NavItemRoute(icon: Icons.add_circle_outline, label: 'New Assessment',  onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/assessments/create'); }),
-                      _NavItemRoute(icon: Icons.table_rows_outlined, label: 'Batch Entry',    onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/assessments/batch'); }),
                     ],
 
                     if ((user?.hasPermission('programs') ?? false) || (user?.hasPermission('dispensing') ?? false)) ...[
