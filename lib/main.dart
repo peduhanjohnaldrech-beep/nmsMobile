@@ -830,10 +830,7 @@ class _ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<_ProfilePage> {
-  final _urlCtrl = TextEditingController();
   String? _lastSync;
-  bool    _editingUrl     = false;
-  bool    _saving         = false;
 
   @override
   void initState() {
@@ -842,31 +839,17 @@ class _ProfilePageState extends State<_ProfilePage> {
   }
 
   Future<void> _load() async {
-    final url   = await AppConfig.getBaseUrl();
     final prefs = await SharedPreferences.getInstance();
     final sync  = prefs.getString(AppConfig.lastSyncKey);
     if (mounted) {
       setState(() {
-        _urlCtrl.text = url;
-        _lastSync     = sync;
+        _lastSync = sync;
       });
-    }
-  }
-
-  Future<void> _saveUrl() async {
-    setState(() => _saving = true);
-    final url = _urlCtrl.text.trim();
-    if (url.isNotEmpty) await AppConfig.setBaseUrl(url);
-    setState(() { _saving = false; _editingUrl = false; });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Server URL updated'), backgroundColor: Colors.green));
     }
   }
 
   @override
   void dispose() {
-    _urlCtrl.dispose();
     super.dispose();
   }
 
@@ -922,67 +905,6 @@ class _ProfilePageState extends State<_ProfilePage> {
         if (user?.barangay != null)
           _tile(Icons.location_on_outlined, 'Assigned Barangay', user!.barangay!),
         _tile(Icons.sync_rounded, 'Last Sync', _lastSync != null ? _fmt(_lastSync!) : 'Never synced'),
-
-        const SizedBox(height: 8),
-        const _Label('SERVER SETTINGS'),
-
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Icon(Icons.dns_outlined, size: 16, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text('Server URL', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: theme.colorScheme.primary)),
-                  const Spacer(),
-                  if (!_editingUrl)
-                    TextButton(
-                      onPressed: () => setState(() => _editingUrl = true),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text('Edit'),
-                    ),
-                ]),
-                const SizedBox(height: 8),
-                if (_editingUrl) ...[
-                  TextField(
-                    controller: _urlCtrl,
-                    keyboardType: TextInputType.url,
-                    autocorrect: false,
-                    decoration: InputDecoration(
-                      hintText: 'https://xxxx.ngrok-free.dev/api',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    Expanded(child: OutlinedButton(
-                      onPressed: () => setState(() => _editingUrl = false),
-                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
-                      child: const Text('Cancel'),
-                    )),
-                    const SizedBox(width: 10),
-                    Expanded(child: ElevatedButton(
-                      onPressed: _saving ? null : _saveUrl,
-                      style: ElevatedButton.styleFrom(minimumSize: const Size(0, 40)),
-                      child: _saving
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Save'),
-                    )),
-                  ]),
-                ] else
-                  Text(_urlCtrl.text.isNotEmpty ? _urlCtrl.text : AppConfig.defaultBaseUrl,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF90A4B8), fontFamily: 'monospace')),
-              ],
-            ),
-          ),
-        ),
-
 
         const SizedBox(height: 8),
         const _Label('APP INFO'),

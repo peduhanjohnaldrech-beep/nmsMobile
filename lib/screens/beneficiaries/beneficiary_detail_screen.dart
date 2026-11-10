@@ -25,13 +25,19 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
 
   late BeneficiaryModel _bene;
   List<AssessmentModel> _assessments = [];
-  bool _loading     = true;
+  bool _loading        = true;
+  bool _loadingPrograms = true;
+  List<Map<String, dynamic>> _vitaRecords = [];
+  List<Map<String, dynamic>> _mnpRecords  = [];
+  List<Map<String, dynamic>> _lnsRecords  = [];
+  List<Map<String, dynamic>> _dspRecords  = [];
 
   @override
   void initState() {
     super.initState();
     _bene = widget.beneficiary;
     _loadAssessments();
+    _loadPrograms();
   }
 
   Future<void> _loadAssessments() async {
@@ -55,6 +61,23 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
     }
   }
 
+  Future<void> _loadPrograms() async {
+    if (mounted) setState(() => _loadingPrograms = true);
+    try {
+      final res = await _api.getBeneficiaryPrograms(_bene.id);
+      if (res['success'] == true && mounted) {
+        final d = res['data'] as Map<String, dynamic>;
+        setState(() {
+          _vitaRecords = List<Map<String, dynamic>>.from(d['vitamin_a'] ?? []);
+          _mnpRecords  = List<Map<String, dynamic>>.from(d['mnp']       ?? []);
+          _lnsRecords  = List<Map<String, dynamic>>.from(d['lns_sq']    ?? []);
+          _dspRecords  = List<Map<String, dynamic>>.from(d['dsp']       ?? []);
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingPrograms = false);
+  }
+
   Future<void> _refreshBeneficiary() async {
     try {
       if (kIsWeb) {
@@ -74,7 +97,7 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
         }
       }
     } catch (_) {}
-    await _loadAssessments();
+    await Future.wait([_loadAssessments(), _loadPrograms()]);
   }
 
   String _formatDate(String date) {
@@ -446,6 +469,20 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                     ),
                   ],
 
+                  const SizedBox(height: 12),
+
+                  // Program history
+                  if (_loadingPrograms)
+                    const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                  else
+                    _ProgramHistoryCard(
+                      vitaRecords: _vitaRecords,
+                      mnpRecords:  _mnpRecords,
+                      lnsRecords:  _lnsRecords,
+                      dspRecords:  _dspRecords,
+                      formatDate:  _formatDate,
+                    ),
+
                   const SizedBox(height: 16),
 
                   // Action buttons
@@ -469,31 +506,49 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Tooltip(
-                          message: _bene.isRejected
-                              ? 'Registration was rejected. Cannot add assessment.'
-                              : '',
-                          child: ElevatedButton.icon(
-                            icon:  const Icon(Icons.assignment_add),
-                            label: const Text('Add Assessment'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _bene.isRejected
-                                  ? Colors.grey
-                                  : Colors.teal,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 50),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                        child: Builder(builder: (_) {
+                          final currentYear = DateTime.now().year;
+                          final existing = _assessments.where((a) => a.assessmentYear == currentYear).isNotEmpty
+                              ? _assessments.firstWhere((a) => a.assessmentYear == currentYear)
+                              : null;
+                          if (existing != null) {
+                            return ElevatedButton.icon(
+                              icon:  const Icon(Icons.edit_note_rounded),
+                              label: const Text('Edit Assessment'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange.shade700,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(0, 50),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () => _showEditSheet(existing),
+                            );
+                          }
+                          return Tooltip(
+                            message: _bene.isRejected
+                                ? 'Registration was rejected. Cannot add assessment.'
+                                : '',
+                            child: ElevatedButton.icon(
+                              icon:  const Icon(Icons.assignment_add),
+                              label: const Text('Add Assessment'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _bene.isRejected ? Colors.grey : Colors.teal,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(0, 50),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: _bene.isRejected
+                                  ? null
+                                  : () => Navigator.pushNamed(
+                                      context,
+                                      '/assessments/create-for',
+                                      arguments: _bene,
+                                    ).then((_) => _loadAssessments()),
                             ),
-                            onPressed: _bene.isRejected
-                                ? null
-                                : () => Navigator.pushNamed(
-                                    context,
-                                    '/assessments/create-for',
-                                    arguments: _bene,
-                                  ).then((_) => _loadAssessments()),
-                          ),
-                        ),
+                          );
+                        }),
                       ),
                     ],
                   ),
@@ -502,6 +557,115 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+  void _showEditSheet(AssessmentModel a) {
+    final weightCtrl  = TextEditingController(text: a.weightKg.toString());
+    final heightCtrl  = TextEditingController(text: a.heightCm?.toString() ?? '');
+    final muacCtrl    = TextEditingController(text: a.muacCm?.toString() ?? '');
+    final remarksCtrl = TextEditingController(text: a.remarks ?? '');
+    bool saving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Edit Assessment (${a.assessmentYear})',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('${a.assessmentDate}  ·  ${a.period}',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: weightCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Weight (kg)', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: heightCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Height (cm)', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: muacCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'MUAC (cm)', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: remarksCtrl,
+              decoration: const InputDecoration(labelText: 'Remarks', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade700,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 48),
+                ),
+                onPressed: saving ? null : () async {
+                  setS(() => saving = true);
+                  try {
+                    final res = await _api.updateAssessment(a.id, {
+                      'weight_kg': double.tryParse(weightCtrl.text.trim()) ?? a.weightKg,
+                      if (heightCtrl.text.trim().isNotEmpty)
+                        'height_cm': double.tryParse(heightCtrl.text.trim()),
+                      if (muacCtrl.text.trim().isNotEmpty)
+                        'muac_cm': double.tryParse(muacCtrl.text.trim()),
+                      'remarks': remarksCtrl.text.trim(),
+                    });
+                    if (!ctx.mounted) return;
+                    if (res['success'] == true) {
+                      final serverData = (res['data'] as Map<String, dynamic>?)?['assessment'] as Map<String, dynamic>?;
+                      if (serverData != null && !kIsWeb) {
+                        await _local.upsertAssessments([serverData]);
+                      }
+                      if (!ctx.mounted) return;
+                      Navigator.pop(ctx);
+                      _loadAssessments();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Assessment updated.')),
+                        );
+                      }
+                    } else {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text(res['message'] ?? 'Failed to update.')),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  } finally {
+                    if (ctx.mounted) setS(() => saving = false);
+                  }
+                },
+                child: saving
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Save Changes'),
+              ),
+            ),
+          ]),
         ),
       ),
     );
@@ -812,4 +976,154 @@ class _AssessmentHistoryCard extends StatelessWidget {
     }
     return widgets;
   }
+}
+
+// -------------------------------------------------------
+// PROGRAM HISTORY CARD
+// -------------------------------------------------------
+class _ProgramHistoryCard extends StatefulWidget {
+  final List<Map<String, dynamic>> vitaRecords;
+  final List<Map<String, dynamic>> mnpRecords;
+  final List<Map<String, dynamic>> lnsRecords;
+  final List<Map<String, dynamic>> dspRecords;
+  final String Function(String) formatDate;
+
+  const _ProgramHistoryCard({
+    required this.vitaRecords,
+    required this.mnpRecords,
+    required this.lnsRecords,
+    required this.dspRecords,
+    required this.formatDate,
+  });
+
+  @override
+  State<_ProgramHistoryCard> createState() => _ProgramHistoryCardState();
+}
+
+class _ProgramHistoryCardState extends State<_ProgramHistoryCard> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme   = Theme.of(context);
+    final hasAny  = widget.vitaRecords.isNotEmpty || widget.mnpRecords.isNotEmpty ||
+                    widget.lnsRecords.isNotEmpty  || widget.dspRecords.isNotEmpty;
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(children: [
+        // Header
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+            child: Row(children: [
+              Icon(Icons.vaccines_rounded, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text('Program History', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.primary)),
+              const Spacer(),
+              if (!hasAny)
+                const Text('No records', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Icon(_expanded ? Icons.expand_less : Icons.expand_more, color: Colors.grey),
+            ]),
+          ),
+        ),
+        if (_expanded && hasAny) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+              // ── Vitamin A ──
+              if (widget.vitaRecords.isNotEmpty) ...[
+                _sectionHeader(Icons.brightness_1_rounded, 'Vitamin A', const Color(0xFFE91E63)),
+                ...widget.vitaRecords.map((r) => _programTile(
+                  title: '${r['round'] ?? ''} ${r['round'] != null ? r['year'] ?? '' : r['year'] ?? ''}',
+                  subtitle: widget.formatDate(r['distribution_date']?.toString() ?? ''),
+                  trailing: r['capsule_color'] != null ? '${r['capsule_color']} capsule' : '',
+                  color: const Color(0xFFE91E63),
+                )),
+                const SizedBox(height: 10),
+              ],
+
+              // ── MNP ──
+              if (widget.mnpRecords.isNotEmpty) ...[
+                _sectionHeader(Icons.grain_rounded, 'MNP (Micronutrient Powder)', Colors.orange),
+                ...widget.mnpRecords.map((r) => _programTile(
+                  title: r['age_group']?.toString() ?? '',
+                  subtitle: widget.formatDate(r['date_given']?.toString() ?? ''),
+                  trailing: r['sachets_distributed'] != null ? '${r['sachets_distributed']} sachets' : '',
+                  color: Colors.orange,
+                )),
+                const SizedBox(height: 10),
+              ],
+
+              // ── LNS-SQ ──
+              if (widget.lnsRecords.isNotEmpty) ...[
+                _sectionHeader(Icons.water_drop_rounded, 'LNS-SQ', Colors.teal),
+                ...widget.lnsRecords.map((r) => _programTile(
+                  title: r['age_group']?.toString() ?? '',
+                  subtitle: widget.formatDate(r['date_given']?.toString() ?? ''),
+                  trailing: r['weight_kg'] != null ? '${r['weight_kg']} kg' : (r['sachets_distributed'] != null ? '${r['sachets_distributed']} sachets' : ''),
+                  color: Colors.teal,
+                )),
+                const SizedBox(height: 10),
+              ],
+
+              // ── DSP ──
+              if (widget.dspRecords.isNotEmpty) ...[
+                _sectionHeader(Icons.restaurant_rounded, 'DSP (Dietary Supplementation)', Colors.deepOrange),
+                ...widget.dspRecords.map((r) {
+                  final enrolled  = r['enrollment_date']?.toString() ?? '';
+                  final ended     = r['end_date']?.toString();
+                  final status    = r['status']?.toString() ?? '';
+                  return _programTile(
+                    title: 'Cycle ${r['cycle_year'] ?? ''} — $status',
+                    subtitle: 'Enrolled: ${widget.formatDate(enrolled)}${ended != null ? '  •  Ended: ${widget.formatDate(ended)}' : ''}',
+                    trailing: r['post_weight_kg'] != null ? '${r['post_weight_kg']} kg (post)' : '',
+                    color: Colors.deepOrange,
+                  );
+                }),
+              ],
+
+            ]),
+          ),
+        ],
+        if (_expanded && !hasAny)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 16),
+            child: Text('No program records found.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+          ),
+      ]),
+    );
+  }
+
+  Widget _sectionHeader(IconData icon, String label, Color color) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(children: [
+      Icon(icon, size: 13, color: color),
+      const SizedBox(width: 5),
+      Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+    ]),
+  );
+
+  Widget _programTile({required String title, required String subtitle, required String trailing, required Color color}) => Container(
+    margin: const EdgeInsets.only(bottom: 6),
+    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withValues(alpha: 0.2)),
+    ),
+    child: Row(children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (title.isNotEmpty) Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        if (subtitle.isNotEmpty) Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      ])),
+      if (trailing.isNotEmpty)
+        Text(trailing, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+    ]),
+  );
 }

@@ -894,11 +894,11 @@ class _MnsSubTab extends StatelessWidget {
     final total   = notYetItems.length + items.length;
     final given   = items.length;
 
-    // Unified sorted checklist
-    final allRows = <Map<String, dynamic>>[
-      ...items.map((r)       => {'_given': true,  ...Map<String, dynamic>.from(r)}),
-      ...notYetItems.map((r) => {'_given': false, ...Map<String, dynamic>.from(r)}),
-    ]..sort((a, b) => (a['last_name']?.toString() ?? '').compareTo(b['last_name']?.toString() ?? ''));
+    // Two separate sorted lists
+    final pendingRows  = notYetItems.map((r) => Map<String, dynamic>.from(r)).toList()
+      ..sort((a, b) => (a['last_name']?.toString() ?? '').compareTo(b['last_name']?.toString() ?? ''));
+    final recordedRows = items.map((r) => Map<String, dynamic>.from(r)).toList()
+      ..sort((a, b) => (a['last_name']?.toString() ?? '').compareTo(b['last_name']?.toString() ?? ''));
 
     return Stack(children: [
       RefreshIndicator(
@@ -983,18 +983,27 @@ class _MnsSubTab extends StatelessWidget {
                     ]),
                   ),
 
-                  // ── Unified checklist ─────────────────────────────
-                  ...allRows.map((r) {
-                    final isGiven = r['_given'] as bool;
-                    final id      = r['id'] as int? ?? 0;
-                    final beneId  = r['beneficiary_id'] as int? ?? (r['id'] as int? ?? 0);
+                  // ── Not Yet Received ──────────────────────────────
+                  if (pendingRows.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
+                      child: Row(children: [
+                        const Icon(Icons.hourglass_top_rounded, size: 13, color: Colors.orange),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Not Yet Received (${pendingRows.length})',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.orange),
+                        ),
+                      ]),
+                    ),
+                  ],
+                  ...pendingRows.map((r) {
                     final name    = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
                     final brgy    = r['barangay'] ?? '';
                     final age     = r['age_months'] ?? '';
 
-                    if (!isGiven) {
-                      // ── Pending row
-                      return Card(
+                    // ── Pending row
+                    return Card(
                         margin: const EdgeInsets.only(bottom: 6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         clipBehavior: Clip.antiAlias,
@@ -1026,7 +1035,28 @@ class _MnsSubTab extends StatelessWidget {
                               : null,
                         ),
                       );
-                    }
+                  }),
+
+                  // ── Already Recorded ──────────────────────────────
+                  if (recordedRows.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+                      child: Row(children: [
+                        Icon(Icons.check_circle_rounded, size: 13, color: color),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Already Recorded (${recordedRows.length})',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
+                        ),
+                      ]),
+                    ),
+                  ],
+                  ...recordedRows.map((r) {
+                    final id      = r['id'] as int? ?? 0;
+                    final beneId  = r['beneficiary_id'] as int? ?? (r['id'] as int? ?? 0);
+                    final name    = '${r['last_name'] ?? ''}, ${r['first_name'] ?? ''}';
+                    final brgy    = r['barangay'] ?? '';
+                    final age     = r['age_months'] ?? '';
 
                     // ── Given row
                     final completed = (r['completed_routine'] == 1 || r['completed_routine'] == '1');
@@ -1287,6 +1317,22 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
         return;
       }
     }
+    // Client-side 6-month gap check for Vitamin A
+    if (widget.type == 'vitamina') {
+      final lastVita = _selected!['last_vita_date']?.toString() ?? '';
+      if (lastVita.isNotEmpty) {
+        final lastDate  = DateTime.tryParse(lastVita);
+        final givenDate = DateTime.tryParse(_dateCtrl.text) ?? DateTime.now();
+        if (lastDate != null) {
+          final monthsAgo = (givenDate.year - lastDate.year) * 12 + (givenDate.month - lastDate.month);
+          if (monthsAgo < 6) {
+            final fmt = '${_monthName(lastDate.month)} ${lastDate.day}, ${lastDate.year}';
+            _snack('Cannot record — Vitamin A was last given on $fmt ($monthsAgo month(s) ago). Minimum 6-month gap required.', false);
+            return;
+          }
+        }
+      }
+    }
     setState(() => _saving = true);
     final Future<Map<String, dynamic>> call;
     if (widget.type == 'vitamina') {
@@ -1326,6 +1372,8 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
   void _snack(String msg, bool ok) => ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(msg), backgroundColor: ok ? Colors.green : Colors.red, behavior: SnackBarBehavior.floating));
 
+  String _monthName(int m) => const ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m];
+
   String get _title => switch (widget.type) { 'vitamina' => 'Record Vitamin A', 'mnp' => 'Record MNP', _ => 'Record LNS-SQ' };
 
   @override
@@ -1347,6 +1395,27 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
         }),
         onClear: () => setState(() { _selected = null; _searchCtrl.clear(); _results = []; }),
       ),
+      if (widget.type == 'vitamina' && _selected != null) ...[
+        Builder(builder: (_) {
+          final lastVita = _selected!['last_vita_date']?.toString() ?? '';
+          if (lastVita.isEmpty) return const SizedBox.shrink();
+          final lastDate = DateTime.tryParse(lastVita);
+          if (lastDate == null) return const SizedBox.shrink();
+          final monthsAgo = (DateTime.now().year - lastDate.year) * 12 + (DateTime.now().month - lastDate.month);
+          if (monthsAgo >= 6) return const SizedBox.shrink();
+          final fmt = '${_monthName(lastDate.month)} ${lastDate.day}, ${lastDate.year}';
+          return Container(
+            margin: const EdgeInsets.only(top: 8, bottom: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.shade200)),
+            child: Row(children: [
+              Icon(Icons.block_rounded, color: Colors.red.shade700, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Last Vitamin A: $fmt ($monthsAgo month(s) ago). 6-month gap required.', style: TextStyle(fontSize: 12, color: Colors.red.shade800))),
+            ]),
+          );
+        }),
+      ],
       const SizedBox(height: 12),
       _dateField(context, _dateCtrl, widget.type == 'vitamina' ? 'Distribution Date' : 'Date Given'),
       const SizedBox(height: 12),
@@ -1358,7 +1427,7 @@ class _MnsRecordModalState extends State<_MnsRecordModal> {
             DropdownMenuItem(value: '100000', child: Text('100,000 IU (Blue capsule)')),
             DropdownMenuItem(value: '200000', child: Text('200,000 IU (Red capsule)')),
           ],
-          onChanged: (v) => setState(() { _dosageIu = v!; _capsuleColor = v == '100000' ? 'Blue' : 'Red'; }),
+          onChanged: null,
         ),
         const SizedBox(height: 10),
         DropdownButtonFormField<String>(
