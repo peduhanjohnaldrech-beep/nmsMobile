@@ -174,6 +174,13 @@ Color nutritionStatusColor(String status) {
     case 'UW':  return const Color(0xFFF57C00);
     case 'OW':  return const Color(0xFFF9A825);
     case 'OB':  return const Color(0xFF7B1FA2);
+    // HFA
+    case 'SSt': return const Color(0xFF4527A0); // Severely Stunted — deep purple
+    case 'St':  return const Color(0xFF1565C0); // Stunted — blue
+    case 'Tall':return const Color(0xFF00897B); // Tall — teal
+    // WFLH
+    case 'SW':  return const Color(0xFFB71C1C); // Severely Wasted — dark red
+    case 'MW':  return const Color(0xFFE65100); // Moderately Wasted — deep orange
     default:    return const Color(0xFF2E7D32);
   }
 }
@@ -184,6 +191,13 @@ String nutritionStatusLabel(String status) {
     case 'UW':  return 'Underweight';
     case 'OW':  return 'Overweight';
     case 'OB':  return 'Obese';
+    // HFA
+    case 'SSt': return 'Severely Stunted';
+    case 'St':  return 'Stunted';
+    case 'Tall':return 'Tall';
+    // WFLH
+    case 'SW':  return 'Severely Wasted';
+    case 'MW':  return 'Moderately Wasted';
     default:    return 'Normal';
   }
 }

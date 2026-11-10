@@ -14,6 +14,9 @@ class StatusBadge extends StatelessWidget {
     'Normal': 'Normal',
     'OW':     'Overweight',
     'OB':     'Obese',
+    'SSt':    'Severely Stunted',
+    'St':     'Stunted',
+    'Tall':   'Tall',
     'SW':     'Severely Wasted',
     'MW':     'Moderately Wasted',
   };

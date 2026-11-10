@@ -253,6 +253,24 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                                         color: latestAssessment.statusColor,
                                         solid: true,
                                       ),
+                                      if (latestAssessment.hfaStatus != null &&
+                                          latestAssessment.hfaStatus != 'Normal') ...[
+                                        const SizedBox(width: 4),
+                                        _HeaderChip(
+                                          label: latestAssessment.hfaStatus!,
+                                          color: nutritionStatusColor(latestAssessment.hfaStatus!),
+                                          solid: true,
+                                        ),
+                                      ],
+                                      if (latestAssessment.wflhStatus != null &&
+                                          latestAssessment.wflhStatus != 'Normal') ...[
+                                        const SizedBox(width: 4),
+                                        _HeaderChip(
+                                          label: latestAssessment.wflhStatus!,
+                                          color: nutritionStatusColor(latestAssessment.wflhStatus!),
+                                          solid: true,
+                                        ),
+                                      ],
                                     ],
                                   ],
                                 ),
@@ -308,8 +326,16 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                                 ),
                             ]),
                             const SizedBox(height: 12),
-                            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Wrap(spacing: 8, runSpacing: 6, children: [
                               StatusChip(status: latestAssessment.nutritionalStatus),
+                              if (latestAssessment.hfaStatus != null &&
+                                  latestAssessment.hfaStatus != 'Normal')
+                                StatusChip(status: latestAssessment.hfaStatus!),
+                              if (latestAssessment.wflhStatus != null &&
+                                  latestAssessment.wflhStatus != 'Normal')
+                                StatusChip(status: latestAssessment.wflhStatus!),
+                            ]),
+                            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               const Spacer(),
                               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                                 _MeasurementRow(icon: Icons.monitor_weight_outlined, label: '${latestAssessment.weightKg} kg'),
@@ -844,8 +870,14 @@ class _AssessmentHistoryCard extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              // Status badge
-                              StatusBadge(status: a.nutritionalStatus),
+                              // Status badges (WFA + HFA + WFLH)
+                              Wrap(spacing: 4, runSpacing: 4, children: [
+                                StatusBadge(status: a.nutritionalStatus),
+                                if (a.hfaStatus != null && a.hfaStatus != 'Normal')
+                                  StatusBadge(status: a.hfaStatus!),
+                                if (a.wflhStatus != null && a.wflhStatus != 'Normal')
+                                  StatusBadge(status: a.wflhStatus!),
+                              ]),
                             ],
                           ),
                           // Z-scores row
