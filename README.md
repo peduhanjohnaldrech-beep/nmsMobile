@@ -12,8 +12,12 @@ The mobile app connects to the NMS backend API at `https://kabnms.duckdns.org/ap
 
 - **Login** — Bearer token authentication via NMS API; session persisted securely on-device
 - **Beneficiary Management** — Register, view, and edit child beneficiaries; BHW/BNS/Midwife are scoped to their assigned barangay
+- **Beneficiary Profile** — Full profile with assessment history, growth info, and complete program history (Vitamin A, MNP, LNS-SQ, DSP enrollment records)
 - **Assessment Recording** — Record weight, height, and MUAC; automatic OPT period detection (January for Jan–Jun, July for Jul–Dec)
 - **OPT Batch Weighing** — Enter weights for multiple children at once and submit all records in a single API call
+- **Programs — MNS** — Record Vitamin A (April & October rounds), MNP, and LNS-SQ distributions; real-time eligibility panel shows age, dose type (Blue/Red capsule), and out-of-range warnings; age group auto-set from DOB; split "Not Yet Received" / "Already Recorded" sections
+- **Programs — DSP** — View and manage Dietary Supplementation Program enrollments
+- **Programs — Others** — Custom programs configured by admin
 - **Submit to Admin** — BNS can submit pending beneficiary records to the midwife/admin for validation
 - **Validation Queue** — Midwife and other authorized roles can review and validate pending assessment submissions from field workers
 - **Reports** — View OPT, DSP, MNS, and summary reports filtered by barangay
@@ -37,12 +41,11 @@ The mobile app connects to the NMS backend API at `https://kabnms.duckdns.org/ap
 
 | Role | Access |
 |------|--------|
-| **BHW** | Own barangay only; register beneficiaries, record assessments, OPT batch weighing |
-| **BNS** | Same as BHW; can submit pending records to admin |
-| **Midwife** | Own barangay; record assessments; validate submissions in Validation Queue |
-| **Encoder** | Add/edit beneficiaries and record assessments |
+| **BHW** | Own barangay only; register beneficiaries, record assessments, OPT weighing; mobile app only |
+| **BNS** | Same as BHW; can submit pending records for validation; beneficiaries, assessments, reports |
+| **Midwife** | Own barangay; record assessments (including on pending-validation beneficiaries); validate submissions in Validation Queue |
 | **Nutritionist** | Full data access; validates all field submissions |
-| **Admin** | Full access |
+| **Admin** | Full access including User Management, Program Manager, Activity Log in app |
 
 ---
 
@@ -123,8 +126,14 @@ All requests target `https://kabnms.duckdns.org/api`. Authentication uses a Bear
 | `POST` | `/api/auth/login` | Login |
 | `GET` | `/api/beneficiaries` | List beneficiaries |
 | `POST` | `/api/beneficiaries` | Create beneficiary |
+| `GET` | `/api/beneficiaries/{id}` | Beneficiary detail |
+| `GET` | `/api/beneficiaries/{id}/programs` | Vitamin A, MNP, LNS-SQ, DSP history |
 | `POST` | `/api/assessments` | Record single assessment |
 | `POST` | `/api/assessments/batch` | Submit OPT batch weighing |
+| `GET` | `/api/programs/mns` | MNS data (eligible, records, not-yet lists) |
+| `POST` | `/api/programs/mns/vitamina` | Record Vitamin A distribution |
+| `POST` | `/api/programs/mns/mnp` | Record MNP distribution |
+| `POST` | `/api/programs/mns/lnssq` | Record LNS-SQ distribution |
 | `GET` | `/api/sync` | Pull latest server data |
 | `POST` | `/api/sync/push` | Push locally created records |
 | `GET` | `/api/validation/queue` | Validation queue (midwife/admin) |
@@ -142,4 +151,4 @@ Update this value and rebuild the APK to target a different server (e.g., local 
 
 ---
 
-*NMS Mobile — September 2026*
+*NMS Mobile — November 2026*

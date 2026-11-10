@@ -195,9 +195,11 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
     if (_sex == null) { _showError('Sex is required'); return; }
     if (_barangay == null || _barangay!.isEmpty) { _showError('Barangay is required'); return; }
 
-    // Block aged-out beneficiaries (over 59 months)
-    final ageInMonths = (DateTime.now().year - _dob!.year) * 12 + (DateTime.now().month - _dob!.month);
-    if (ageInMonths > 59) { _showError('Beneficiary is over 59 months old and cannot be registered.'); return; }
+    // Block aged-out beneficiaries (over 59 months) — skip for edits
+    if (!_isEdit) {
+      final ageInMonths = (DateTime.now().year - _dob!.year) * 12 + (DateTime.now().month - _dob!.month);
+      if (ageInMonths > 59) { _showError('Beneficiary is over 59 months old and cannot be registered.'); return; }
+    }
 
     setState(() => _saving = true);
 
@@ -344,11 +346,19 @@ class _BeneficiaryFormScreenState extends State<BeneficiaryFormScreen> {
           ),
         ],
       ),
-    ).then((record) {
+    ).then((record) async {
       if (!mounted) return;
-      // Pop with result so BeneficiaryListScreen can open AssessmentFormScreen
-      // from its own context (ensuring the list reloads before & after assessment).
-      Navigator.pop(context, record == true ? {'openAssessment': newBene} : true);
+      if (record == true) {
+        // Navigate directly to assessment form, then pop this screen when done
+        await Navigator.pushNamed(
+          context,
+          '/assessments/create-for',
+          arguments: newBene,
+        );
+        if (mounted) Navigator.pop(context, true);
+      } else {
+        Navigator.pop(context, true);
+      }
     });
   }
 

@@ -7,7 +7,6 @@ import '../../services/auth_provider.dart';
 import '../../services/local_db_service.dart';
 import '../../services/sync_service.dart';
 import '../../widgets/status_badge.dart';
-import '../assessments/assessment_form_screen.dart';
 import 'beneficiary_detail_screen.dart';
 
 class BeneficiaryListScreen extends StatefulWidget {
@@ -145,17 +144,8 @@ class _BeneficiaryListScreenState extends State<BeneficiaryListScreen> {
   }
 
   Future<void> _openCreateForm(BuildContext ctx) async {
-    final result = await Navigator.pushNamed(ctx, '/beneficiaries/create');
-    _load(reset: true);
-    if (!mounted) return;
-    if (result is Map && result.containsKey('openAssessment')) {
-      final bene = result['openAssessment'] as BeneficiaryModel?;
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => AssessmentFormScreen(beneficiary: bene)),
-      );
-      _load(reset: true);
-    }
+    await Navigator.pushNamed(ctx, '/beneficiaries/create');
+    if (mounted) _load(reset: true);
   }
 
   @override

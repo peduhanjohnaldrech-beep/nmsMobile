@@ -158,6 +158,14 @@ class ApiService {
     return _decode(res);
   }
 
+  Future<Map<String, dynamic>> getBeneficiaryPrograms(int id) async {
+    final base = await _baseUrl();
+    final res = await http
+        .get(Uri.parse('$base/beneficiaries/$id/programs'), headers: await _headers())
+        .timeout(const Duration(seconds: 15));
+    return _decode(res);
+  }
+
   Future<Map<String, dynamic>> createBeneficiary(
       Map<String, dynamic> data) async {
     final base = await _baseUrl();

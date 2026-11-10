@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:path/path.dart';
 
 /// Local SQLite database for offline storage.
@@ -21,12 +24,36 @@ class LocalDbService {
     final dbPath = await getDatabasesPath();
     final path   = join(dbPath, 'nms_offline.db');
 
-    return openDatabase(
-      path,
-      version: 5,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
+    // Retrieve or generate an encryption key stored in secure storage
+    const storage = FlutterSecureStorage();
+    var dbKey = await storage.read(key: 'nms_db_key');
+    if (dbKey == null) {
+      final rng = Random.secure();
+      dbKey = List.generate(32, (_) => rng.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+      await storage.write(key: 'nms_db_key', value: dbKey);
+    }
+
+    try {
+      return await openDatabase(
+        path,
+        version: 5,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+        password: dbKey,
+      );
+    } catch (_) {
+      // Migration: existing unencrypted DB — delete and recreate encrypted.
+      // The local DB is a sync cache; data will be restored on next sync.
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+      return openDatabase(
+        path,
+        version: 5,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+        password: dbKey,
+      );
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -262,7 +289,7 @@ class LocalDbService {
         LIMIT 1
       )
       ${where.isNotEmpty ? 'WHERE ${where.join(' AND ')}' : ''}
-      ${statusFilter != null && statusFilter != 'All' ? 'AND (a.nutritional_status = ? OR a.nutritional_status IS NULL)' : ''}
+      ${statusFilter != null && statusFilter != 'All' ? 'AND a.nutritional_status = ?' : ''}
       ORDER BY LOWER(b.last_name), LOWER(b.first_name)
       LIMIT ? OFFSET ?
     ''';

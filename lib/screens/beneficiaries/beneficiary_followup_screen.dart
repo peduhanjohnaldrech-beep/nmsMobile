@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/beneficiary_model.dart';
 import '../../services/api_service.dart';
 import '../../widgets/status_badge.dart';
@@ -130,7 +131,14 @@ class _State extends State<BeneficiaryFollowupScreen> {
                                 ),
                                 subtitle: Text('${b['barangay']} • ${b['assessment_date'] ?? 'No assessment'} • ${b['weight_kg'] ?? '—'} kg'),
                                 trailing: b['contact_number'] != null
-                                    ? const Icon(Icons.phone, color: Colors.green)
+                                    ? IconButton(
+                                        icon: const Icon(Icons.phone, color: Colors.green),
+                                        tooltip: 'Call ${b['contact_number']}',
+                                        onPressed: () async {
+                                          final uri = Uri(scheme: 'tel', path: b['contact_number'].toString());
+                                          if (await canLaunchUrl(uri)) launchUrl(uri);
+                                        },
+                                      )
                                     : const Icon(Icons.chevron_right, color: Color(0xFF616161)),
                                 onTap: () async {
                                   final nav = Navigator.of(context);
