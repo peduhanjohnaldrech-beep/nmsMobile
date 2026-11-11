@@ -57,7 +57,7 @@ class UserModel {
 
   String get roleDisplay {
     switch (role) {
-      case 'admin':        return 'Administrator';
+      case 'admin':        return 'Nutrition Coordinator';
       case 'nutritionist': return 'Nutritionist';
       case 'encoder':      return 'Data Encoder';
       case 'bhw':          return 'Barangay Health Worker';

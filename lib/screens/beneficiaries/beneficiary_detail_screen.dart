@@ -253,8 +253,7 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                                         color: latestAssessment.statusColor,
                                         solid: true,
                                       ),
-                                      if (latestAssessment.hfaStatus != null &&
-                                          latestAssessment.hfaStatus != 'Normal') ...[
+                                      if (latestAssessment.hfaStatus != null) ...[
                                         const SizedBox(width: 4),
                                         _HeaderChip(
                                           label: latestAssessment.hfaStatus!,
@@ -262,8 +261,7 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                                           solid: true,
                                         ),
                                       ],
-                                      if (latestAssessment.wflhStatus != null &&
-                                          latestAssessment.wflhStatus != 'Normal') ...[
+                                      if (latestAssessment.wflhStatus != null) ...[
                                         const SizedBox(width: 4),
                                         _HeaderChip(
                                           label: latestAssessment.wflhStatus!,
@@ -328,11 +326,9 @@ class _BeneficiaryDetailScreenState extends State<BeneficiaryDetailScreen> {
                             const SizedBox(height: 12),
                             Wrap(spacing: 8, runSpacing: 6, children: [
                               StatusChip(status: latestAssessment.nutritionalStatus),
-                              if (latestAssessment.hfaStatus != null &&
-                                  latestAssessment.hfaStatus != 'Normal')
+                              if (latestAssessment.hfaStatus != null)
                                 StatusChip(status: latestAssessment.hfaStatus!),
-                              if (latestAssessment.wflhStatus != null &&
-                                  latestAssessment.wflhStatus != 'Normal')
+                              if (latestAssessment.wflhStatus != null)
                                 StatusChip(status: latestAssessment.wflhStatus!),
                             ]),
                             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -873,9 +869,9 @@ class _AssessmentHistoryCard extends StatelessWidget {
                               // Status badges (WFA + HFA + WFLH)
                               Wrap(spacing: 4, runSpacing: 4, children: [
                                 StatusBadge(status: a.nutritionalStatus),
-                                if (a.hfaStatus != null && a.hfaStatus != 'Normal')
+                                if (a.hfaStatus != null)
                                   StatusBadge(status: a.hfaStatus!),
-                                if (a.wflhStatus != null && a.wflhStatus != 'Normal')
+                                if (a.wflhStatus != null)
                                   StatusBadge(status: a.wflhStatus!),
                               ]),
                             ],

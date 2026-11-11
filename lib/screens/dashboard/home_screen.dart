@@ -499,7 +499,7 @@ class _RoleBadge extends StatelessWidget {
     'midwife':      'Midwife',
     'encoder':      'Encoder',
     'nutritionist': 'Nutritionist',
-    'admin':        'Admin',
+    'admin':        'Nutrition Coordinator',
   };
 
   static const _colors = {
