@@ -12,7 +12,7 @@ The mobile app connects to the NMS backend API at `https://kabnms.duckdns.org/ap
 
 - **Login** — Bearer token authentication via NMS API; session persisted securely on-device
 - **Beneficiary Management** — Register, view, and edit child beneficiaries; BHW/BNS/Midwife are scoped to their assigned barangay
-- **Beneficiary Profile** — Full profile with assessment history, growth info, and complete program history (Vitamin A, MNP, LNS-SQ, DSP enrollment records)
+- **Beneficiary Profile** — Full profile with assessment history, growth info, and complete program history (Vitamin A, MNP, LNS-SQ, DSP enrollment records); WFA, HFA, and WFLH/WFL status badges always shown (including Normal)
 - **Assessment Recording** — Record weight, height, and MUAC; automatic OPT period detection (January for Jan–Jun, July for Jul–Dec)
 - **OPT Batch Weighing** — Enter weights for multiple children at once and submit all records in a single API call
 - **Programs — MNS** — Record Vitamin A (April & October rounds), MNP, and LNS-SQ distributions; real-time eligibility panel shows age, dose type (Blue/Red capsule), and out-of-range warnings; age group auto-set from DOB; split "Not Yet Received" / "Already Recorded" sections
@@ -30,7 +30,7 @@ The mobile app connects to the NMS backend API at `https://kabnms.duckdns.org/ap
 
 1. BHW or BNS enters weight/height data via **OPT Batch Weighing** or individual assessment form
 2. Records are saved to the server with `validation_status = pending`
-3. Midwife (or Nutritionist/Admin) reviews entries in the **Validation Queue**
+3. Midwife (or Nutrition Coordinator) reviews entries in the **Validation Queue**
 4. Once validated, nutritional status is computed and reflected in beneficiary profiles
 
 > Beneficiary registration and assessment validation are separate workflows. A beneficiary record must be validated before assessments for that child are processed.
@@ -44,8 +44,7 @@ The mobile app connects to the NMS backend API at `https://kabnms.duckdns.org/ap
 | **BHW** | Own barangay only; register beneficiaries, record assessments, OPT weighing; mobile app only |
 | **BNS** | Same as BHW; can submit pending records for validation; beneficiaries, assessments, reports |
 | **Midwife** | Own barangay; record assessments (including on pending-validation beneficiaries); validate submissions in Validation Queue |
-| **Nutritionist** | Full data access; validates all field submissions |
-| **Admin** | Full access including User Management, Program Manager, Activity Log in app |
+| **Nutrition Coordinator** | Full access including User Management, Program Manager, Activity Log in app |
 
 ---
 
