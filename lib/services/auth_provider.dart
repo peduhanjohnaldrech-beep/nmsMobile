@@ -11,10 +11,16 @@ class AuthProvider extends ChangeNotifier {
   bool       _loading = false;
   String?    _error;
 
-  UserModel? get user      => _user;
-  bool       get loading   => _loading;
-  String?    get error     => _error;
-  bool       get isLoggedIn => _user != null;
+  /// Non-null when admin login requires OTP verification
+  String?    _pendingOtpToken;
+  String?    _pendingMaskedEmail;
+
+  UserModel? get user             => _user;
+  bool       get loading          => _loading;
+  String?    get error            => _error;
+  bool       get isLoggedIn       => _user != null;
+  String?    get pendingOtpToken  => _pendingOtpToken;
+  String?    get pendingMaskedEmail => _pendingMaskedEmail;
 
   final _storage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -77,18 +83,17 @@ class AuthProvider extends ChangeNotifier {
 
       if (result['success'] == true) {
         final data = result['data'] as Map<String, dynamic>;
-        await _api.setToken(data['token'] as String);
-        _user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
-        await _storage.write(key: AppConfig.userKey, value: jsonEncode(_user!.toJson()));
-        // Save hashed credentials for offline login
-        final hash = sha256.convert(utf8.encode(password)).toString();
-        await _storage.write(
-          key:   AppConfig.offlineCredsKey,
-          value: jsonEncode({'username': username, 'hash': hash}),
-        );
-        _loading = false;
-        _error   = null;
-        notifyListeners();
+
+        // Admin OTP challenge
+        if (data['requires_otp'] == true) {
+          _pendingOtpToken    = data['otp_token'] as String?;
+          _pendingMaskedEmail = data['masked_email'] as String?;
+          _loading = false;
+          notifyListeners();
+          return false; // login screen checks pendingOtpToken to navigate
+        }
+
+        await _completeLogin(data, password: password);
         return true;
       } else {
         _error   = result['message'] as String? ?? 'Login failed';
@@ -131,6 +136,60 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  // -------------------------------------------------------
+  // OTP VERIFY
+  // -------------------------------------------------------
+
+  Future<bool> verifyOtp(String otpCode) async {
+    if (_pendingOtpToken == null) return false;
+    _loading = true;
+    _error   = null;
+    notifyListeners();
+
+    try {
+      final result = await _api.verifyOtp(_pendingOtpToken!, otpCode, AppConfig.appName);
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>;
+        _pendingOtpToken    = null;
+        _pendingMaskedEmail = null;
+        await _completeLogin(data);
+        return true;
+      } else {
+        _error   = result['message'] as String? ?? 'Invalid OTP';
+        _loading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (_) {
+      _error   = 'Cannot connect to server.';
+      _loading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void clearPendingOtp() {
+    _pendingOtpToken    = null;
+    _pendingMaskedEmail = null;
+    notifyListeners();
+  }
+
+  Future<void> _completeLogin(Map<String, dynamic> data, {String? password}) async {
+    await _api.setToken(data['token'] as String);
+    _user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+    await _storage.write(key: AppConfig.userKey, value: jsonEncode(_user!.toJson()));
+    if (password != null) {
+      final hash = sha256.convert(utf8.encode(password)).toString();
+      await _storage.write(
+        key:   AppConfig.offlineCredsKey,
+        value: jsonEncode({'username': _user!.username, 'hash': hash}),
+      );
+    }
+    _loading = false;
+    _error   = null;
+    notifyListeners();
   }
 
   // -------------------------------------------------------

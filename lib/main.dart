@@ -8,6 +8,7 @@ import 'config/app_config.dart';
 import 'services/auth_provider.dart';
 import 'services/sync_service.dart';
 import 'screens/login/login_screen.dart';
+import 'screens/login/otp_verify_screen.dart';
 import 'screens/dashboard/home_screen.dart';
 import 'screens/beneficiaries/beneficiary_list_screen.dart';
 import 'screens/beneficiaries/beneficiary_form_screen.dart';
@@ -137,6 +138,7 @@ class NmsApp extends StatelessWidget {
       home: const _SplashRouter(),
       routes: {
         '/login':                  (_) => const LoginScreen(),
+        '/otp-verify':             (_) => const OtpVerifyScreen(),
         '/home':                   (_) => const MainShell(),
         '/beneficiaries':          (_) => const MainShell(initialIndex: 1),
         '/beneficiaries/create':   (_) => const BeneficiaryFormScreen(),

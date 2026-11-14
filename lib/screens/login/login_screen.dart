@@ -52,8 +52,11 @@ class _LoginScreenState extends State<LoginScreen>
     if (!_formKey.currentState!.validate()) return;
     final auth    = context.read<AuthProvider>();
     final success = await auth.login(_userCtrl.text.trim(), _passCtrl.text);
-    if (success && mounted) {
+    if (!mounted) return;
+    if (success) {
       Navigator.pushReplacementNamed(context, '/home');
+    } else if (auth.pendingOtpToken != null) {
+      Navigator.pushNamed(context, '/otp-verify');
     }
   }
 

@@ -90,6 +90,27 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> verifyOtp(
+      String otpToken, String otpCode, String deviceName) async {
+    final base = await _baseUrl();
+    final res = await http
+        .post(
+          Uri.parse('$base/auth/verify-otp'),
+          headers: await _headers(auth: false),
+          body: jsonEncode({
+            'otp_token':   otpToken,
+            'otp_code':    otpCode,
+            'device_name': deviceName,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+    try {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (_) {
+      return {'success': false, 'message': 'Invalid server response (status ${res.statusCode})'};
+    }
+  }
+
   Future<void> logout() async {
     try {
       final base = await _baseUrl();
