@@ -187,10 +187,10 @@ Widget _rejectionBox(String note) => Container(
     border: Border.all(color: const Color(0x7FFF9100)),
   ),
   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(children: [
-      const Icon(Icons.reply_rounded, size: 13, color: Color(0xFFFFB74D)),
-      const SizedBox(width: 5),
-      const Text('Midwife\'s note:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFFFB74D))),
+    const Row(children: [
+      Icon(Icons.reply_rounded, size: 13, color: Color(0xFFFFB74D)),
+      SizedBox(width: 5),
+      Text('Midwife\'s note:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFFFB74D))),
     ]),
     const SizedBox(height: 4),
     Text(note, style: const TextStyle(fontSize: 12, color: Color(0xFFFFCC80))),
@@ -972,7 +972,7 @@ class _AssessmentEditSheetState extends State<_AssessmentEditSheet> {
               }
             : (v) {
                 if (v != null && v.trim().isNotEmpty &&
-                    (double.tryParse(v.trim()) ?? 0) <= 0) return 'Enter a valid value';
+                    (double.tryParse(v.trim()) ?? 0) <= 0) { return 'Enter a valid value'; }
                 return null;
               },
       );

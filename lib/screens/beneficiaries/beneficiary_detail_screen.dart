@@ -1,11 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import '../../models/assessment_model.dart';
 import '../../models/beneficiary_model.dart';
 import '../../services/api_service.dart';
-import '../../services/auth_provider.dart';
 import '../../services/local_db_service.dart';
 import '../../widgets/info_card.dart';
 import '../../widgets/status_badge.dart';

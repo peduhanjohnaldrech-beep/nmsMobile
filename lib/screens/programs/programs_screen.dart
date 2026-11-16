@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_provider.dart';
 import '../../services/local_db_service.dart';
-import '../../widgets/status_badge.dart';
-import '../../constants/barangays.dart';
 import '../../models/beneficiary_model.dart';
 import '../beneficiaries/beneficiary_detail_screen.dart';
 import '../dsp/dsp_monitoring_form_screen.dart';
@@ -819,7 +817,7 @@ class _MnsTabState extends State<_MnsTab> with AutomaticKeepAliveClientMixin {
             final w = r['weight_kg'];
             return '${r['barangay'] ?? ''}  •  ${r['age_group'] ?? ''}'
                 '${s != null ? '  •  $s sachets' : ''}'
-                '${w != null ? '  •  ${w} kg' : ''}';
+                '${w != null ? '  •  $w kg' : ''}';
           },
           trailing: (r) => r['date_given'] ?? '',
           onRecord: () => _showRecordModal('lnssq'),
