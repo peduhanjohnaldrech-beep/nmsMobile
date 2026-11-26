@@ -140,13 +140,26 @@ All requests target `https://kabnms.duckdns.org/api`. Authentication uses a Bear
 
 ### Changing the API URL
 
-The base URL is defined in `lib/services/api_service.dart`:
+The default base URL is defined in `lib/config/app_config.dart`:
 
 ```dart
-static const String _baseUrl = 'https://kabnms.duckdns.org/api';
+static const String defaultBaseUrl = 'http://152.42.197.110/api';
 ```
 
-Update this value and rebuild the APK to target a different server (e.g., local development).
+Users can also change the API URL at runtime from the app's Settings screen (stored in `SharedPreferences`). Update `defaultBaseUrl` and rebuild to change the default for new installs.
+
+---
+
+## Backend Web System
+
+The mobile app connects to the NMS PHP web backend. See [`../nms/README.md`](../nms/README.md) for the full web system documentation including:
+
+- Features: OPT, DSP, MNS programs, Dispensing Tracker, Barangay Directory, Reports
+- Deployment guide: `docs/DEPLOYMENT.md`
+- Database schema: `docs/DATABASE.md`
+
+**Production backend:** https://kabnms.duckdns.org
+**Deploy web updates:** `git push` locally → `git pull && composer install --no-dev` on server via DigitalOcean web console (SSH blocked by ISP).
 
 ---
 
